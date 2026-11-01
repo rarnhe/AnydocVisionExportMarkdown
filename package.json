@@ -1,8 +1,8 @@
 {
-  "name": "exportmarkdown_ts",
+  "name": "node_jxa_jsc_wasm",
   "version": "1.0.0",
-  "description": "echo 'export PATH=\"/Users/xu/Developer/smallTools/node-v24.21.0-darwin-arm64/bin:$PATH\"' >> ~/.zshrc source ~/.zshrc",
-  "main": "index.js",
+  "description": "",
+  "main": "build.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,13 +10,10 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "dependencies": {
-    "@firecrawl/anydoc": "^0.2.4",
-    "@firecrawl/anydoc-wasm": "^0.2.4",
-    "@jxa/run": "^1.4.0"
-  },
   "devDependencies": {
-    "@types/node": "^22.20.2",
-    "tsx": "^4.23.13"
+    "@firecrawl/anydoc-wasm": "^0.2.4",
+    "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15"
   }
 }

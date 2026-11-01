@@ -1,4 +1,3 @@
-// build.js
 const fs = require('fs');
 const path = require('path');
 const esbuild = require('esbuild');
@@ -28,14 +27,12 @@ try {
 
   console.log('⚡️ 正在使用 esbuild 打包 JXA Bundle...');
   esbuild.buildSync({
-    entryPoints: ['src/node_jxa_jsc_wasm.ts'],
+    entryPoints: ['src/jxa/jxa-main.ts'], // 指向新架构的 JXA 入口
     bundle: true,
-    outfile: 'dist/node_jxa_jsc_wasm.jxa.js',
+    outfile: 'dist/anydoc-wasm.jxa.js',
     platform: 'neutral',
     format: 'iife',
-    // 关键修正 1: 告诉 esbuild 识别 package.json 中的 main 字段
     mainFields: ['module', 'main'],
-    // 关键修正 2: 将 Node 依赖与 @jxa/run 排除在打包范围之外
     external: ['fs', 'path', 'child_process', 'esbuild', '@jxa/run'],
     banner: {
       js: '#!/usr/bin/osascript -l JavaScript',
@@ -49,8 +46,8 @@ try {
     },
   });
 
-  fs.chmodSync('dist/node_jxa_jsc_wasm.jxa.js', 0o755);
-  console.log('🎉 编译成功！输出文件: dist/jxa_wasm_test.jxa.js');
+  fs.chmodSync('dist/anydoc-wasm.jxa.js', 0o755);
+  console.log('🎉 编译成功！输出文件: dist/anydoc-wasm.jxa.js');
 } catch (err) {
   console.error('❌ 编译失败:', err);
   process.exit(1);

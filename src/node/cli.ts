@@ -51,6 +51,7 @@ export function runNodeMode(): void {
     write: false,
     platform: 'neutral',
     format: 'iife',
+    external: ['child_process'],
     define: {
       'process.env.BUILD_TARGET': '"jxa"',
       'globalThis.__STATIC_WASM_B64__': JSON.stringify(wasmB64),
@@ -74,6 +75,7 @@ export function runNodeMode(): void {
     cp.execFileSync('osascript', osaArgs, { stdio: 'inherit' });
   } catch (e: any) {
     console.error('❌ osascript 执行发生异常:', e.message);
+    process.exitCode = 1;
   } finally {
     if (fs.existsSync(tmpRunnerPath)) {
       fs.unlinkSync(tmpRunnerPath);

@@ -1,0 +1,40 @@
+name: macOS three-mode PDF to Markdown
+on:
+  push:
+    branches: [main, 'test/**']
+    paths-ignore: [test_report.md]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify three execution modes
+        id: test
+        continue-on-error: true
+        run: npx tsx tests/validate.ts
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-macos
+          path: |
+            test_report.md
+            tests/output/
+          if-no-files-found: warn
+      - name: Publish summary
+        if: always()
+        run: |
+          if [ -f test_report.md ]; then cat test_report.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Enforce result
+        if: always()
+        run: test "${{ steps.test.outcome }}" = success

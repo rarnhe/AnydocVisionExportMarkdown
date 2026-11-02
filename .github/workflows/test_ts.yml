@@ -18,9 +18,9 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
 
@@ -85,6 +85,16 @@ jobs:
           if [ -f dist/anydoc-wasm.jxa.js ]; then chmod +x dist/anydoc-wasm.jxa.js; fi
           stage executable ./dist/anydoc-wasm.jxa.js "$INPUT"
           stage osascript osascript -l JavaScript ./dist/anydoc-wasm.jxa.js "$INPUT"
+          if [ -f tests/output/tsx.md ] && [ -f tests/output/executable.md ] && [ -f tests/output/osascript.md ]; then
+            if cmp -s tests/output/tsx.md tests/output/executable.md && cmp -s tests/output/tsx.md tests/output/osascript.md; then
+              echo '| 输出一致性 | PASS | 三种方式输出相同 |' >> test_report.md
+            else
+              echo '| 输出一致性 | FAIL | 三种方式 Markdown 内容不同 |' >> test_report.md
+              FAILED=1
+            fi
+          else
+            echo '| 输出一致性 | SKIP | 转换阶段未全部通过 |' >> test_report.md
+          fi
           if [ "$FAILED" -ne 0 ]; then exit 1; fi
 
       - name: Finalize report even after failures
@@ -97,10 +107,11 @@ jobs:
             echo "- Assertions: ${{ steps.checks.outcome }}"
           } >> test_report.md
           cat test_report.md >> "$GITHUB_STEP_SUMMARY"
+          cat test_report.md
 
       - name: Upload report and logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos-test-report
           path: |

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -19,6 +19,8 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: true
 
       - uses: actions/setup-node@v5
         with:
@@ -118,6 +120,27 @@ jobs:
             test_report.md
             tests/output/
           if-no-files-found: warn
+
+      - name: Safely commit report to PR branch
+        if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/test/macos-three-mode-validation' }}
+        continue-on-error: true
+        env:
+          REPORT_BRANCH: test/macos-three-mode-validation
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test -f test_report.md
+          # Never push source files, generated bundles, or diagnostic artifacts.
+          git add -- test_report.md
+          if git diff --cached --quiet; then
+            echo "Report unchanged; skipping commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "ci: update test_report.md [skip ci]"
+          # Do not overwrite concurrent source updates: reject if the branch moved.
+          git push origin "HEAD:refs/heads/${REPORT_BRANCH}"
 
       - name: Fail job when assertions fail
         if: always()

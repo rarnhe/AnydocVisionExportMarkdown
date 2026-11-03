@@ -1,56 +1,60 @@
 # AnydocVisionExportMarkdown
 
-使用 macOS 原生 **JXA（JavaScript for Automation）+ JavaScriptCore + WebAssembly** 将 PDF 转换为 Markdown 的实验性 MVP。
+基于 macOS 原生 **JXA + JavaScriptCore + WebAssembly** 的 PDF 批量转 Markdown MVP。
 
 ## 架构
 
-- `src/node/cli.ts`：开发调试入口，使用 Node.js / esbuild 准备 WASM 与 JXA 脚本。
-- `src/jxa/jxa-main.ts`：JXA 入口与宿主识别。
-- `src/jxa/task-router.ts`：PDF 读取、任务派发、输出写入。
-- `src/jxa/cocoa-fs.ts`：Foundation 文件系统封装。
-- `src/jxa/app-control.ts`：Finder 交互。
-- `src/jsc/jsc-runner.ts`：生成独立 JSC WASM 运行脚本。
-- `src/jsc/polyfills.ts`：为 JSC 补充必要的 JavaScript API。
-- `src/types/`：JXA 与 WASM 类型定义。
-- `build.js`：将 WASM 与胶水代码静态打包成可执行 JXA 文件。
+- `build.js`：读取 AnyDoc WASM 与 JS glue，将二者编译/注入到单个 `dist/anydoc-wasm.jxa.js`。
+- `src/node/cli.ts`：开发态入口，要求显式传入 PDF 目录；构建 bundle 后调用 macOS 的 osascript。
+- `src/jxa/jxa-main.ts`：区分 Node 与 JXA 宿主。
+- `src/jxa/task-router.ts`：枚举目录 PDF（排除 `test.pdf`），读取内嵌 WASM 与 glue，收集 PDF 数据并启动一个 JSC 进程。
+- `src/jsc/jsc-runner.ts`：在单个 JSC 进程内初始化 WASM 一次，再循环转换该批次的 PDF。
+- `src/jsc/polyfills.ts`：提供 WASM glue 所需的 JSC 兼容 API。
 
-核心数据流：PDF → JXA/Foundation 读取 → Base64 → NSTask 启动系统 JSC → AnyDoc WASM 转换 → stdout → Markdown 文件。Node.js 只参与构建和开发调试，不是预期发布脚本的运行时依赖。
+**资源策略：WASM 内嵌在生成的 JS 文件中；PDF 不参与构建、不进入 JS，只在运行时从用户指定目录读取。** 因此发布时只需分发 `dist/anydoc-wasm.jxa.js`，不需要旁置 `.wasm` 文件。批次内只启动一个 JSC 进程并初始化一次 WASM。
 
-## 环境与安装
+## 安装
 
-需要 macOS、Node.js、npm、系统自带 `osascript` 与 JavaScriptCore。安装依赖：
+需要 macOS（提供 `osascript`、JavaScriptCore 与 Foundation）、Node.js 和 npm：
 
 ```bash
 npm ci
 ```
 
-首次创建同类项目可用 `npm init -y` 与 `npm install --save-dev esbuild @firecrawl/anydoc-wasm tsx`，但本仓库已有 package.json 和锁文件，无须重新初始化。
-
 ## 三种运行方式
 
-输入样本实际位于 **`tests/chunk_1.pdf`**（注意是 tests，不是 test）。执行：
+三种入口都要求显式指定目录，不再默认使用任何 PDF：
 
 ```bash
-npx tsx src/node/cli.ts ./tests/chunk_1.pdf
+# 方式一：TypeScript 开发态（内部构建后调用 JXA）
+npx tsx src/node/cli.ts ./tests
+
+# 方式二：先构建，再直接执行 JXA bundle
 node build.js
-./dist/anydoc-wasm.jxa.js ./tests/chunk_1.pdf
-osascript -l JavaScript ./dist/anydoc-wasm.jxa.js ./tests/chunk_1.pdf
+./dist/anydoc-wasm.jxa.js ./tests
+
+# 方式三：显式使用 osascript 宿主
+osascript -l JavaScript ./dist/anydoc-wasm.jxa.js ./tests
 ```
 
-预期输出：`tests/chunk_1.md`。每种运行方式都会覆盖同名输出，测试脚本会分别保留副本并检查内容。
+程序扫描目录第一层的 PDF 文件，跳过大小写不敏感的 `test.pdf`，并为每个输入文件生成同目录同名 `.md` 文件。
 
-## 自动化与本地验证
+## 批量测试
 
 ```bash
-npx tsx tests/validate.ts
+bash tests/test_batch.sh
 ```
 
-测试检查：PDF 签名、编译产物、三种运行方式的退出状态、Markdown 文件存在性、非空且非占位内容、UTF-8 基本有效性、三种输出内容一致性。生成根目录 `test_report.md`，并在 `tests/output/` 保留每种方式的输出副本。
+测试从 `tests/chunk_1.pdf` 创建五份临时副本，与原件合计六份；分别通过三种方式转换，检查六份 Markdown 是否生成、非空，并比较三种模式的输出一致性。测试结束会删除五份临时 PDF 副本，但保留原始 `chunk_1.pdf` 和另有用途的 `test.pdf`。报告写入根目录 `test_report.md`，诊断日志与输出副本位于 `tests/output/`。
 
-GitHub Actions 使用当前可用的 macOS runner，测试报告以 Artifact 和 Job Summary 双轨保存。**GitHub 官方托管 runner 不提供 macOS Mojave 10.14**；如果需要严格验证 Mojave，请在 Mojave 本机或自托管 runner 上执行上述命令。较新 macOS CI 通过不代表 Mojave 已验证。
+GitHub Actions 使用 `macos-latest`。失败时仍上传报告和日志 Artifact。GitHub 官方托管 runner 不提供 macOS Mojave 10.14；较新系统 CI 通过不代表 Mojave 兼容性已得到验证。
 
-## 限制
+## 当前边界
 
-当前仅实现 PDF → Markdown。转换核心来自 `@firecrawl/anydoc-wasm`。JSC 的 WebAssembly 能力、胶水层导出接口以及 macOS 版本兼容性需要真实运行验证。输出文本使用标记协议，未来建议改为结构化协议并强化错误处理。
+- 当前只处理指定目录的第一层 PDF，不递归子目录。
+- 每次批量执行初始化一次 WASM；不同进程之间不共享实例。
+- PDF 内容目前会在 JXA 与 JSC 进程间通过 Base64 脚本参数传递，超大 PDF/超大批次仍可能产生较高内存占用。
+- WASM 与 glue 的导出 API、JSC WebAssembly 支持和 macOS 版本兼容性仍需真实设备测试。
+- 性能提升应以实际批量基准测试衡量，不预设加速倍数。
 
-仓库原有 `dist/node_jxa_jsc_wasm.jxa.js` 为既有本地构建产物，本次变更不修改它。
+仓库原有 `dist/node_jxa_jsc_wasm.jxa.js` 本次不修改。

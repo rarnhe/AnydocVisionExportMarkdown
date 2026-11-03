@@ -1,16 +1,6 @@
 import {nativeParseArgs,nativeFileExists,nativeReadBinaryAsBase64,nativeWriteTextFile,nativeRemoveFile,nativeJoinPath,nativeGetTmpDir,toNsString,toJsString} from './cocoa-fs';
 import {buildJscKernelScript} from '../jsc/jsc-runner';
 
-function scriptDirectory():string {
-  const args = ObjC.unwrap($.NSProcessInfo.processInfo.arguments);
-  for(let i=0;i<args.length;i++){
-    const arg=toJsString(args[i]);
-    if(arg.endsWith('anydoc-wasm.jxa.js')){
-      return toJsString(toNsString(arg).stringByDeletingLastPathComponent);
-    }
-  }
-  throw new Error('Cannot locate JXA script path for external WASM asset');
-}
 function pdfPaths(folder:string):string[]{
   const fm=$.NSFileManager.defaultManager;
   const entries=ObjC.unwrap(fm.contentsOfDirectoryAtPathError(toNsString(folder),null));
@@ -29,9 +19,8 @@ export function runJxaMode():void {
   if(!folder || !nativeFileExists(folder))throw new Error('Please provide an existing PDF directory');
   const files=pdfPaths(folder);
   if(!files.length)throw new Error('No PDF files found (test.pdf is excluded)');
-  const wasmPath=nativeJoinPath(scriptDirectory(),'anydoc_core.wasm');
-  if(!nativeFileExists(wasmPath))throw new Error('External WASM missing: '+wasmPath);
-  const wasmB64=nativeReadBinaryAsBase64(wasmPath); // Read once per batch
+  const wasmB64=globalThis.__STATIC_WASM_B64__ || ''; // Embedded at build time; no external WASM file needed
+  if(!wasmB64)throw new Error('Embedded WASM payload missing from JXA bundle');
   const glue=globalThis.__STATIC_GLUE_CODE__ || '';
   if(!glue)throw new Error('WASM glue missing');
   const inputs=files.map(path=>({path,pdfB64:nativeReadBinaryAsBase64(path)}));

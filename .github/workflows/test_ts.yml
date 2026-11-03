@@ -1,149 +1,62 @@
-name: macOS TypeScript and JXA validation
+name: macOS batch WASM validation
 on:
   push:
-    branches: [main, 'test/**']
-    paths-ignore:
-      - test_report.md
+    branches: [main, 'feat/**']
+    paths-ignore: [test_report.md]
   pull_request:
   workflow_dispatch:
-
 permissions:
   contents: write
-
 jobs:
   validate:
     runs-on: macos-latest
     timeout-minutes: 35
-    defaults:
-      run:
-        shell: bash
     steps:
       - uses: actions/checkout@v5
-        with:
-          persist-credentials: true
-
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-
-      - name: Initialize report and diagnostics
+      - name: Initialize report
         if: always()
         run: |
-          printf '# macOS 测试报告\n\n- Runner: %s\n- 时间: %s\n\n' "${{ runner.os }}" "$(date -u +%FT%TZ)" > test_report.md
-          sw_vers | tee -a test_report.md
-          echo >> test_report.md
           mkdir -p tests/output
-          : > tests/output/ci-steps.log
-
-      - name: Initialize npm and install dependencies
+          echo '# CI 初始化报告' > test_report.md
+      - name: Install dependencies
         id: deps
         continue-on-error: true
         run: |
-          set -o pipefail
           if [ ! -f package.json ]; then npm init -y; fi
-          npm install --no-save --package-lock=false esbuild @firecrawl/anydoc-wasm tsx 2>&1 | tee tests/output/dependencies.log
-
-      - name: Run four progressive assertions
-        id: checks
+          npm install --no-save --package-lock=false esbuild @firecrawl/anydoc-wasm tsx
+      - name: Test six PDFs in three modes
+        id: tests
         if: always()
         continue-on-error: true
-        run: |
-          set +e
-          INPUT="tests/chunk_1.pdf"
-          OUTPUT="tests/chunk_1.md"
-          FAILED=0
-          echo '## 四阶段测试断言' >> test_report.md
-          echo '| 阶段 | 结果 | 详情 |' >> test_report.md
-          echo '|---|---|---|' >> test_report.md
-          stage() {
-            local label="$1"
-            shift
-            rm -f "$OUTPUT"
-            "$@" > "tests/output/${label}.log" 2>&1
-            local status=$?
-            local detail="exit=${status}"
-            if [ "$status" -eq 0 ] && [ -s "$OUTPUT" ] && ! grep -Eq 'Direct JXA Export|Executed without WASM|MARKDOWN_OUTPUT_START|ERROR:' "$OUTPUT"; then
-              cp "$OUTPUT" "tests/output/${label}.md"
-              echo "| ${label} | PASS | ${detail}; Markdown 已生成 |" >> test_report.md
-            else
-              echo "| ${label} | FAIL | ${detail}; 参见 tests/output/${label}.log |" >> test_report.md
-              FAILED=1
-            fi
-          }
-          if [ ! -s "$INPUT" ]; then
-            echo '| PDF fixture | FAIL | tests/chunk_1.pdf 缺失 |' >> test_report.md
-            FAILED=1
-          fi
-          stage tsx npx --no-install tsx src/node/cli.ts "$INPUT"
-          rm -f dist/anydoc-wasm.jxa.js
-          node build.js > tests/output/esbuild.log 2>&1
-          BUILD_STATUS=$?
-          if [ "$BUILD_STATUS" -eq 0 ] && test -f dist/anydoc-wasm.jxa.js; then
-            echo '| esbuild | PASS | dist/anydoc-wasm.jxa.js 已生成 |' >> test_report.md
-          else
-            echo "| esbuild | FAIL | exit=${BUILD_STATUS}; 产物不存在或构建失败 |" >> test_report.md
-            FAILED=1
-          fi
-          if [ -f dist/anydoc-wasm.jxa.js ]; then chmod +x dist/anydoc-wasm.jxa.js; fi
-          stage executable ./dist/anydoc-wasm.jxa.js "$INPUT"
-          stage osascript osascript -l JavaScript ./dist/anydoc-wasm.jxa.js "$INPUT"
-          if [ -f tests/output/tsx.md ] && [ -f tests/output/executable.md ] && [ -f tests/output/osascript.md ]; then
-            if cmp -s tests/output/tsx.md tests/output/executable.md && cmp -s tests/output/tsx.md tests/output/osascript.md; then
-              echo '| 输出一致性 | PASS | 三种方式输出相同 |' >> test_report.md
-            else
-              echo '| 输出一致性 | FAIL | 三种方式 Markdown 内容不同 |' >> test_report.md
-              FAILED=1
-            fi
-          else
-            echo '| 输出一致性 | SKIP | 转换阶段未全部通过 |' >> test_report.md
-          fi
-          if [ "$FAILED" -ne 0 ]; then exit 1; fi
-
-      - name: Finalize report even after failures
+        run: bash tests/test_batch.sh
+      - name: Publish report
         if: always()
         run: |
-          {
-            echo
-            echo '## CI 步骤状态'
-            echo "- Dependencies: ${{ steps.deps.outcome }}"
-            echo "- Assertions: ${{ steps.checks.outcome }}"
-          } >> test_report.md
+          printf '\n## CI 状态\n- Dependencies: %s\n- Tests: %s\n' "${{ steps.deps.outcome }}" "${{ steps.tests.outcome }}" >> test_report.md
           cat test_report.md >> "$GITHUB_STEP_SUMMARY"
-          cat test_report.md
-
-      - name: Upload report and logs
+      - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: macos-test-report
+          name: macos-batch-test-report
           path: |
             test_report.md
             tests/output/
-          if-no-files-found: warn
-
-      - name: Safely commit report to PR branch
-        if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/test/macos-three-mode-validation' }}
+      - name: Safely write report to feature branch
+        if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/feat/external-wasm-batch-singleton' }}
         continue-on-error: true
-        env:
-          REPORT_BRANCH: test/macos-three-mode-validation
-          EXPECTED_SHA: ${{ github.sha }}
         run: |
-          set -euo pipefail
-          test -f test_report.md
-          # Never push source files, generated bundles, or diagnostic artifacts.
           git add -- test_report.md
-          if git diff --cached --quiet; then
-            echo "Report unchanged; skipping commit."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "ci: update test_report.md [skip ci]"
-          # Do not overwrite concurrent source updates: reject if the branch moved.
-          git push origin "HEAD:refs/heads/${REPORT_BRANCH}"
-
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'ci: update batch test_report.md [skip ci]'
+          git push origin HEAD:refs/heads/feat/external-wasm-batch-singleton
       - name: Fail job when assertions fail
         if: always()
         run: |
           test "${{ steps.deps.outcome }}" = success
-          test "${{ steps.checks.outcome }}" = success
+          test "${{ steps.tests.outcome }}" = success

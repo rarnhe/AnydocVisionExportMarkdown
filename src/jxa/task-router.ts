@@ -7,7 +7,7 @@ function pdfPaths(folder:string):string[]{
   const result:string[]=[];
   for(let i=0;i<entries.length;i++){
     const name=toJsString(entries[i]);
-    if(!name.toLowerCase().endsWith('.pdf') || name.toLowerCase()==='test.pdf')continue;
+    if(!name.toLowerCase().endsWith('.pdf'))continue;
     const file=nativeJoinPath(folder,name);
     const isDir=Ref();
     if(fm.fileExistsAtPathIsDirectory(toNsString(file),isDir) && !isDir[0])result.push(file);
@@ -18,7 +18,7 @@ export function runJxaMode():void {
   const folder=nativeParseArgs()[0];
   if(!folder || !nativeFileExists(folder))throw new Error('Please provide an existing PDF directory');
   const files=pdfPaths(folder);
-  if(!files.length)throw new Error('No PDF files found (test.pdf is excluded)');
+  if(!files.length)throw new Error('No PDF files found');
   const wasmB64=globalThis.__STATIC_WASM_B64__ || ''; // Embedded at build time; no external WASM file needed
   if(!wasmB64)throw new Error('Embedded WASM payload missing from JXA bundle');
   const glue=globalThis.__STATIC_GLUE_CODE__ || '';

@@ -7,7 +7,7 @@
 - `build.js`：读取 AnyDoc WASM 与 JS glue，将二者编译/注入到单个 `dist/anydoc-wasm.jxa.js`。
 - `src/node/cli.ts`：开发态入口，要求显式传入 PDF 目录；构建 bundle 后调用 macOS 的 osascript。
 - `src/jxa/jxa-main.ts`：区分 Node 与 JXA 宿主。
-- `src/jxa/task-router.ts`：枚举目录 PDF（排除 `test.pdf`），读取内嵌 WASM 与 glue，收集 PDF 数据并启动一个 JSC 进程。
+- `src/jxa/task-router.ts`：枚举目录中的全部 PDF，不按文件名设置排除规则，读取内嵌 WASM 与 glue，收集 PDF 数据并启动一个 JSC 进程。
 - `src/jsc/jsc-runner.ts`：在单个 JSC 进程内初始化 WASM 一次，再循环转换该批次的 PDF。
 - `src/jsc/polyfills.ts`：提供 WASM glue 所需的 JSC 兼容 API。
 
@@ -37,7 +37,7 @@ node build.js
 osascript -l JavaScript ./dist/anydoc-wasm.jxa.js ./tests
 ```
 
-程序扫描目录第一层的 PDF 文件，跳过大小写不敏感的 `test.pdf`，并为每个输入文件生成同目录同名 `.md` 文件。
+程序扫描目录第一层的全部 PDF 文件，不根据文件名进行特殊判断；包括 `test.pdf` 在内的每个 PDF 都会生成同目录同名 `.md` 文件。
 
 ## 批量测试
 
@@ -45,7 +45,7 @@ osascript -l JavaScript ./dist/anydoc-wasm.jxa.js ./tests
 bash tests/test_batch.sh
 ```
 
-测试从 `tests/chunk_1.pdf` 创建五份临时副本，与原件合计六份；分别通过三种方式转换，检查六份 Markdown 是否生成、非空，并比较三种模式的输出一致性。测试结束会删除五份临时 PDF 副本，但保留原始 `chunk_1.pdf` 和另有用途的 `test.pdf`。报告写入根目录 `test_report.md`，诊断日志与输出副本位于 `tests/output/`。
+测试从 `tests/chunk_1.pdf` 创建五份临时副本，然后扫描 `tests/` 中的全部 PDF（包括 `test.pdf` 和其他用户放入的 PDF），分别通过三种方式转换，检查每份 Markdown 是否生成、非空，并比较三种模式的输出一致性。测试结束只删除本次创建的五份临时 PDF 副本，保留目录中原有的所有 PDF。报告写入根目录 `test_report.md`，诊断日志与输出副本位于 `tests/output/`。
 
 GitHub Actions 使用 `macos-latest`。失败时仍上传报告和日志 Artifact。GitHub 官方托管 runner 不提供 macOS Mojave 10.14；较新系统 CI 通过不代表 Mojave 兼容性已得到验证。
 

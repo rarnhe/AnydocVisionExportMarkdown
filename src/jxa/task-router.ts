@@ -33,8 +33,10 @@ export function runJxaMode():void {
   const kernel=buildJscKernelScript(wasmB64,glue,files.length);
   nativeWriteTextFile(kernelPath,kernel);
 
-  const fm=$.NSFileManager.defaultManager;
-  fm.createFileAtPathContentsAttributes(toNsString(outputPath),$.NSData.data,null);
+  // Create the output file through the existing Foundation text helper.
+  // Passing JavaScript null as NSDictionary attributes can bridge to NSNull,
+  // which triggers '-[NSNull count]' inside NSFileManager on some macOS releases.
+  nativeWriteTextFile(outputPath,'');
   const inputPipe=$.NSPipe.pipe;
   const outputHandle=$.NSFileHandle.fileHandleForWritingAtPath(toNsString(outputPath));
   if(!outputHandle) {
@@ -67,7 +69,9 @@ export function runJxaMode():void {
     task.waitUntilExit;
     outputHandle.closeFile();
 
-    const outputString=$.NSString.stringWithContentsOfFileEncodingError(toNsString(outputPath),4,null);
+    const readError=Ref();
+    const outputString=$.NSString.alloc.initWithContentsOfFileEncodingError(toNsString(outputPath),4,readError);
+    if(!outputString) throw new Error('Cannot read JSC output file: '+toJsString(readError[0]));
     raw=toJsString(outputString);
     if(task.terminationStatus!==0)throw new Error('JSC exit '+task.terminationStatus+': '+raw);
   } finally {

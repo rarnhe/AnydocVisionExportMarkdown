@@ -25,7 +25,45 @@ export function nativeReadBinaryAsBase64(pathStr: string): string {
   if (!data || data.length === 0) {
     throw new Error(`无法读取文件或文件为空: ${pathStr}`);
   }
-  return ObjC.unwrap(data.base64EncodedStringWithOptions(0));
+
+  // Prefer Foundation's NSData API when exposed by the current JXA bridge.
+  // Some macOS/JXA bridge versions return an NSData proxy without exposing
+  // base64EncodedStringWithOptions, so fall back to the system base64 utility.
+  try {
+    if (typeof data.base64EncodedStringWithOptions === 'function') {
+      return String(ObjC.unwrap(data.base64EncodedStringWithOptions(0)));
+    }
+    if (typeof data.base64EncodedStringWithOptions_ === 'function') {
+      return String(ObjC.unwrap(data.base64EncodedStringWithOptions_(0)));
+    }
+  } catch (e) {
+    // Continue with the portable command-line fallback below.
+  }
+
+  const task = $.NSTask.alloc.init;
+  task.setLaunchPath(toNsString('/usr/bin/base64'));
+  const args = $.NSMutableArray.alloc.init;
+  args.addObject(toNsString('-i'));
+  args.addObject(nsPath);
+  task.setArguments(args);
+
+  const output = $.NSPipe.pipe;
+  const errors = $.NSPipe.pipe;
+  task.setStandardOutput(output);
+  task.setStandardError(errors);
+  task.launch;
+  const encodedData = output.fileHandleForReading.readDataToEndOfFile;
+  const errorData = errors.fileHandleForReading.readDataToEndOfFile;
+  task.waitUntilExit;
+
+  if (task.terminationStatus !== 0) {
+    const errorText = toJsString($.NSString.alloc.initWithDataEncoding(errorData, 4));
+    throw new Error(`Base64 编码失败: ${pathStr}; ${errorText}`);
+  }
+
+  const encoded = toJsString($.NSString.alloc.initWithDataEncoding(encodedData, 4));
+  if (!encoded) throw new Error(`Base64 编码结果为空: ${pathStr}`);
+  return encoded.replace(/\\s+/g, '');
 }
 
 export function nativeWriteTextFile(pathStr: string, content: string): void {

@@ -20,7 +20,7 @@ export function buildJscKernelScript(wasmB64:string, glueCode:string, files:{pat
     'for(var i=0;i<inputs.length;i++){',
     'try {var bytes=b64ToUint8Array(inputs[i].pdfB64);var result=convert(bytes,"pdf");',
     'var md=typeof result==="string"?result:new TextDecoder("utf-8").decode(new Uint8Array(result));',
-    'print("BATCH_RESULT:"+i+":"+btoa(unescape(encodeURIComponent(md))));',
+    'print("BATCH_RESULT:"+i+":"+encodeURIComponent(md));',
     '}catch(e){print("BATCH_ERROR:"+i+":"+String(e.stack||e));}',
     '}',
     '}catch(e){print("BATCH_FATAL:"+String(e.stack||e));}',

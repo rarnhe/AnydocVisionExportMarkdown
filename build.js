@@ -8,8 +8,6 @@ try {
   const glueSource = ['anydoc_wasm.js', 'anydoc_wasm_bg.js'].map(n => path.join(pkgDir,n)).find(fs.existsSync);
   if (!glueSource || !fs.existsSync(wasmSource)) throw new Error('AnyDoc WASM assets missing');
   fs.mkdirSync('dist', {recursive:true});
-  // External asset: no PDF or WASM binary is embedded in the generated JS.
-  fs.copyFileSync(wasmSource, 'dist/anydoc_core.wasm');
   const glueCode = esbuild.transformSync(fs.readFileSync(glueSource,'utf8'), {
     loader:'js', target:'es2020', format:'iife', globalName:'WasmGlue'
   }).code;
@@ -21,9 +19,11 @@ try {
     define:{
       'process.env.BUILD_TARGET':'"jxa"',
       'globalThis.__STATIC_GLUE_CODE__':JSON.stringify(glueCode),
-      '__STATIC_GLUE_CODE__':JSON.stringify(glueCode)
+      '__STATIC_GLUE_CODE__':JSON.stringify(glueCode),
+      'globalThis.__STATIC_WASM_B64__':JSON.stringify(fs.readFileSync(wasmSource).toString('base64')),
+      '__STATIC_WASM_B64__':JSON.stringify(fs.readFileSync(wasmSource).toString('base64'))
     }
   });
   fs.chmodSync('dist/anydoc-wasm.jxa.js',0o755);
-  console.log('Built dist/anydoc-wasm.jxa.js and dist/anydoc_core.wasm');
+  console.log('Built self-contained dist/anydoc-wasm.jxa.js (WASM embedded; PDFs remain runtime inputs)');
 } catch (e) { console.error(e); process.exitCode=1; }

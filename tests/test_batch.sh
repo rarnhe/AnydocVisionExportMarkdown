@@ -29,8 +29,8 @@ if [ "$code" -ne 0 ]; then record 'tsx exit' FAIL "$code"; failed=1; fi
 clean_outputs
 node build.js > tests/output/build.log 2>&1
 code=$?
-if [ "$code" -eq 0 ] && [ -s dist/anydoc-wasm.jxa.js ] && [ -s dist/anydoc_core.wasm ]; then
-  record build PASS 'JS and external WASM exist'
+if [ "$code" -eq 0 ] && [ -s dist/anydoc-wasm.jxa.js ] && ! grep -q "anydoc_core.wasm" dist/anydoc-wasm.jxa.js; then
+  record build PASS '单文件 JS bundle 已生成；WASM 已内嵌'
 else record build FAIL "exit=$code"; failed=1; fi
 clean_outputs
 ./dist/anydoc-wasm.jxa.js ./tests > tests/output/executable.log 2>&1

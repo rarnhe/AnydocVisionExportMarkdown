@@ -65,9 +65,9 @@ export function runJxaMode():void {
       const line=toNsString(pdfB64+'\n').dataUsingEncoding(4);
       writer.writeData(line);
     }
-    writer.closeFile();
+    writer.closeFile;
     task.waitUntilExit;
-    outputHandle.closeFile();
+    outputHandle.closeFile;
 
     const readError=Ref();
     const outputString=$.NSString.alloc.initWithContentsOfFileEncodingError(toNsString(outputPath),4,readError);
@@ -75,7 +75,7 @@ export function runJxaMode():void {
     raw=toJsString(outputString);
     if(task.terminationStatus!==0)throw new Error('JSC exit '+task.terminationStatus+': '+raw);
   } finally {
-    try { inputPipe.fileHandleForWriting.closeFile(); } catch(e) {}
+    try { inputPipe.fileHandleForWriting.closeFile; } catch(e) {}
     try { outputHandle.closeFile(); } catch(e) {}
     nativeRemoveFile(kernelPath);
     nativeRemoveFile(outputPath);

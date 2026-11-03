@@ -14,35 +14,69 @@ function pdfPaths(folder:string):string[]{
   }
   return result.sort();
 }
+
 export function runJxaMode():void {
   const folder=nativeParseArgs()[0];
   if(!folder || !nativeFileExists(folder))throw new Error('Please provide an existing PDF directory');
   const files=pdfPaths(folder);
   if(!files.length)throw new Error('No PDF files found');
-  const wasmB64=globalThis.__STATIC_WASM_B64__ || ''; // Embedded at build time; no external WASM file needed
+
+  const wasmB64=globalThis.__STATIC_WASM_B64__ || '';
   if(!wasmB64)throw new Error('Embedded WASM payload missing from JXA bundle');
   const glue=globalThis.__STATIC_GLUE_CODE__ || '';
   if(!glue)throw new Error('WASM glue missing');
-  const inputs=files.map(path=>({path,pdfB64:nativeReadBinaryAsBase64(path)}));
-  const kernel=buildJscKernelScript(wasmB64,glue,inputs);
-  const temp=nativeJoinPath(nativeGetTmpDir(),'anydoc_batch_'+Date.now()+'.js');
-  nativeWriteTextFile(temp,kernel);
+
+  const tmp=nativeGetTmpDir();
+  const token=Date.now()+'_'+Math.random().toString(36).slice(2);
+  const kernelPath=nativeJoinPath(tmp,'anydoc_batch_'+token+'.js');
+  const outputPath=nativeJoinPath(tmp,'anydoc_batch_'+token+'.out');
+  const kernel=buildJscKernelScript(wasmB64,glue,files.length);
+  nativeWriteTextFile(kernelPath,kernel);
+
+  const fm=$.NSFileManager.defaultManager;
+  fm.createFileAtPathContentsAttributes(toNsString(outputPath),$.NSData.data,null);
+  const inputPipe=$.NSPipe.pipe;
+  const outputHandle=$.NSFileHandle.fileHandleForWritingAtPath(toNsString(outputPath));
+  if(!outputHandle) {
+    nativeRemoveFile(kernelPath);
+    throw new Error('Cannot create JSC output file: '+outputPath);
+  }
+
   let raw='';
-  try{
-    const task=$.NSTask.alloc.init;
+  let task:any=null;
+  try {
+    task=$.NSTask.alloc.init;
     task.setLaunchPath(toNsString('/System/Library/Frameworks/JavaScriptCore.framework/Versions/Current/Helpers/jsc'));
     const args=$.NSMutableArray.alloc.init;
-    args.addObject(toNsString(temp));
+    args.addObject(toNsString(kernelPath));
     task.setArguments(args);
-    const pipe=$.NSPipe.pipe;
-    task.setStandardOutput(pipe);
-    task.setStandardError(pipe);
+    task.setStandardInput(inputPipe);
+    task.setStandardOutput(outputHandle);
+    task.setStandardError(outputHandle);
     task.launch;
-    const data=pipe.fileHandleForReading.readDataToEndOfFile;
+
+    const writer=inputPipe.fileHandleForWriting;
+    for(let i=0;i<files.length;i++){
+      // WASM has no filesystem API: pass only the current file's bytes.
+      // Do not build a batch-sized Base64 array or embed PDF payloads in JS.
+      const pdfB64=nativeReadBinaryAsBase64(files[i]);
+      const line=toNsString(pdfB64+'\n').dataUsingEncoding(4);
+      writer.writeData(line);
+    }
+    writer.closeFile();
     task.waitUntilExit;
-    raw=toJsString($.NSString.alloc.initWithDataEncoding(data,4));
+    outputHandle.closeFile();
+
+    const outputString=$.NSString.stringWithContentsOfFileEncodingError(toNsString(outputPath),4,null);
+    raw=toJsString(outputString);
     if(task.terminationStatus!==0)throw new Error('JSC exit '+task.terminationStatus+': '+raw);
-  }finally{nativeRemoveFile(temp);}
+  } finally {
+    try { inputPipe.fileHandleForWriting.closeFile(); } catch(e) {}
+    try { outputHandle.closeFile(); } catch(e) {}
+    nativeRemoveFile(kernelPath);
+    nativeRemoveFile(outputPath);
+  }
+
   if(raw.indexOf('BATCH_INIT_OK')<0)throw new Error('WASM initialization failed: '+raw.slice(0,1000));
   let succeeded=0;
   for(let i=0;i<files.length;i++){
@@ -54,6 +88,6 @@ export function runJxaMode():void {
     nativeWriteTextFile(files[i].slice(0,-4)+'.md',md);
     succeeded++;
   }
-  console.log('BATCH_SUMMARY: '+succeeded+'/'+files.length+' (one WASM initialization)');
+  console.log('BATCH_SUMMARY: '+succeeded+'/'+files.length+' (one WASM initialization; streamed PDF input)');
   if(succeeded!==files.length)throw new Error('Batch conversion incomplete');
 }

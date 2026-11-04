@@ -1,21 +1,8 @@
-# macOS 测试报告
+# JSC 单例批量测试报告
 
-- Runner: macOS
-- 时间: 2026-11-02T15:39:01Z
+- 状态：**PENDING — 尚无本分支 macOS 批量测试结果**
+- 基线：从 main 创建的独立功能分支
+- 目标：JXA Foundation 解码 WASM 与读取 PDF；单个 JSC 进程初始化 WASM 一次并循环转换目录内所有 PDF
+- 验证：`tests/test_batch.sh` 对全部 PDF 执行 tsx / executable / osascript 三模式，检查输出一致性与 `WASM_INIT=1 JSC_PROCESS=1`
 
-ProductName:		macOS
-ProductVersion:		26.6.2
-BuildVersion:		25G83
-
-## 四阶段测试断言
-| 阶段 | 结果 | 详情 |
-|---|---|---|
-| tsx | PASS | exit=0; Markdown 已生成 |
-| esbuild | PASS | dist/anydoc-wasm.jxa.js 已生成 |
-| executable | PASS | exit=0; Markdown 已生成 |
-| osascript | PASS | exit=0; Markdown 已生成 |
-| 输出一致性 | PASS | 三种方式输出相同 |
-
-## CI 步骤状态
-- Dependencies: success
-- Assertions: success
+> 注意：main 分支 2026-11-02 的 PASS 报告只覆盖旧的单 PDF 实现，不作为此 PR 的验证结论。等待 macos-latest CI 生成真实报告并更新此文件。

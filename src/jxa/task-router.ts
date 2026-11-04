@@ -1,4 +1,4 @@
-import {nativeParseArgs,nativeFileExists,nativeReadBinaryAsBase64,nativeWriteTextFile,nativeRemoveFile,nativeJoinPath,nativeGetTmpDir,toNsString,toJsString} from './cocoa-fs';
+import {nativeParseArgs,nativeFileExists,nativeReadBinaryAsBase64,nativeWriteTextFile,nativeRemoveFile,nativeJoinPath,nativeGetTmpDir,toNsString,toJsString,nativeDecodeWasmBase64} from './cocoa-fs';
 import {buildJscKernelScript} from '../jsc/jsc-runner';
 
 function listPdfs(folder:string):string[]{
@@ -23,10 +23,14 @@ export function runJxaMode():void {
   const wasm=globalThis.__STATIC_WASM_B64__||'';
   const glue=globalThis.__STATIC_GLUE_CODE__||'';
   if(!wasm||!glue)throw new Error('Missing embedded WASM or glue');
+  // JXA owns Base64 decoding. The JSC process still needs a binary-safe
+  // serialization of the decoded NSData to instantiate WebAssembly.
+  const wasmData=nativeDecodeWasmBase64(wasm);
+  const wasmTransport=toJsString(wasmData.base64EncodedStringWithOptions(0));
   const token=Date.now()+'_'+Math.random().toString(36).slice(2);
   const kernelPath=nativeJoinPath(nativeGetTmpDir(),'anydoc_worker_'+token+'.js');
   const logPath=nativeJoinPath(nativeGetTmpDir(),'anydoc_worker_'+token+'.log');
-  nativeWriteTextFile(kernelPath,buildJscKernelScript(wasm,glue,files.length));
+  nativeWriteTextFile(kernelPath,buildJscKernelScript(wasmTransport,glue,files.length));
   nativeWriteTextFile(logPath,'');
   const stdin=$.NSPipe.pipe;
   const stdout=$.NSFileHandle.fileHandleForWritingAtPath(toNsString(logPath));

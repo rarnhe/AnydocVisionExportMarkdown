@@ -28,5 +28,5 @@ export function buildJscKernelScript(wasmB64: string, glueCode: string, count: n
     '}',
     '}catch(e){print("BATCH_FATAL:"+String(e.stack||e));}',
     '})();'
-  ].join('\\n');
+  ].join('\n');
 }

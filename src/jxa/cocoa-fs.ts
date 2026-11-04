@@ -1,90 +1,44 @@
-if (typeof ObjC !== 'undefined' && typeof ObjC.import === 'function') {
-  ObjC.import('Foundation');
+if (typeof ObjC !== 'undefined' && typeof ObjC.import === 'function') ObjC.import('Foundation');
+export function toNsString(str:string):any{return $.NSString.stringWithString(String(str));}
+export function toJsString(obj:any):string{if(!obj)return '';const val=ObjC.unwrap(obj);return val===null||val===undefined?'':String(val);}
+export function nativeFileExists(path:string):boolean{return Boolean($.NSFileManager.defaultManager.fileExistsAtPath(toNsString(path)));}
+export function nativeReadBinaryAsBase64(path:string):string{
+  // Foundation's base64EncodedStringWithOptions is not consistently exposed by JXA.
+  // /usr/bin/base64 is a macOS system utility; its output is normalized to one line.
+  const task=$.NSTask.alloc.init;
+  task.setLaunchPath(toNsString('/usr/bin/base64'));
+  const args=$.NSMutableArray.alloc.init;
+  args.addObject(toNsString('-i'));args.addObject(toNsString(path));
+  task.setArguments(args);
+  const pipe=$.NSPipe.pipe;
+  task.setStandardOutput(pipe);
+  task.setStandardError(pipe);
+  task.launch;
+  const data=pipe.fileHandleForReading.readDataToEndOfFile;
+  task.waitUntilExit;
+  const value=toJsString($.NSString.alloc.initWithDataEncoding(data,4));
+  if(task.terminationStatus!==0||!value.trim())throw new Error('PDF base64 encoding failed: '+path+' '+value.slice(-500));
+  return value.replace(/\\s+/g,'');
 }
-
-export function toNsString(str: string): any {
-  if (str === null || str === undefined) return $.NSString.string;
-  return $.NSString.stringWithString(String(str));
+export function nativeWriteTextFile(path:string,content:string):void{
+  const ok=toNsString(content).writeToFileAtomicallyEncodingError(toNsString(path),true,4,Ref());
+  if(!ok)throw new Error('Cannot write file: '+path);
 }
-
-export function toJsString(obj: any): string {
-  if (!obj) return '';
-  const unwrapped = ObjC.unwrap(obj);
-  return unwrapped ? String(unwrapped) : '';
+export function nativeRemoveFile(path:string):void{
+  const fm=$.NSFileManager.defaultManager;
+  if(fm.fileExistsAtPath(toNsString(path)))fm.removeItemAtPathError(toNsString(path),Ref());
 }
-
-export function nativeFileExists(pathStr: string): boolean {
-  if (!pathStr) return false;
-  const fm = $.NSFileManager.defaultManager;
-  return fm.fileExistsAtPath(toNsString(pathStr));
+export function nativeJoinPath(dir:string,file:string):string{return toJsString(toNsString(dir).stringByAppendingPathComponent(toNsString(file)));}
+export function nativeGetTmpDir():string{return toJsString($.NSTemporaryDirectory());}
+export function nativeGetEnv(key:string):string{
+  if(typeof ObjC==='undefined')return '';
+  return toJsString($.NSProcessInfo.processInfo.environment.objectForKey(toNsString(key)));
 }
-
-export function nativeReadBinaryAsBase64(pathStr: string): string {
-  const nsPath = toNsString(pathStr);
-  const data = $.NSData.dataWithContentsOfFile(nsPath);
-  if (!data || data.length === 0) {
-    throw new Error(`无法读取文件或文件为空: ${pathStr}`);
-  }
-  return ObjC.unwrap(data.base64EncodedStringWithOptions(0));
-}
-
-export function nativeWriteTextFile(pathStr: string, content: string): void {
-  const nsStr = toNsString(content);
-  const nsPath = toNsString(pathStr);
-  const success = nsStr.writeToFileAtomicallyEncodingError(
-    nsPath, true, 4 /* NSUTF8StringEncoding */, null
-  );
-  if (!success) {
-    throw new Error(`写入文件失败: ${pathStr}`);
-  }
-}
-
-export function nativeRemoveFile(pathStr: string): void {
-  const fm = $.NSFileManager.defaultManager;
-  const nsPath = toNsString(pathStr);
-  if (fm.fileExistsAtPath(nsPath)) {
-    fm.removeItemAtPathError(nsPath, null);
-  }
-}
-
-export function nativeJoinPath(dir: string, file: string): string {
-  const nsDir = toNsString(dir);
-  return toJsString(nsDir.stringByAppendingPathComponent(toNsString(file)));
-}
-
-export function nativeGetTmpDir(): string {
-  return toJsString($.NSTemporaryDirectory());
-}
-
-export function nativeGetEnv(key: string): string {
-  if (typeof ObjC === 'undefined') return '';
-  const envDict = $.NSProcessInfo.processInfo.environment;
-  const nsVal = envDict.objectForKey(toNsString(key));
-  return toJsString(nsVal);
-}
-
-export function nativeParseArgs(): string[] {
-  if (typeof ObjC === 'undefined') return [];
-  const processInfo = $.NSProcessInfo.processInfo;
-  const rawArgs = ObjC.unwrap(processInfo.arguments);
-  const userArgs: string[] = [];
-  let separatorFound = false;
-  for (let i = 0; i < rawArgs.length; i++) {
-    const arg = toJsString(rawArgs[i]);
-    if (separatorFound) {
-      if (arg) userArgs.push(arg);
-    } else if (arg === '--') {
-      separatorFound = true;
-    }
-  }
-  if (!separatorFound && rawArgs.length > 0) {
-    for (let i = rawArgs.length - 1; i >= 0; i--) {
-      const arg = toJsString(rawArgs[i]);
-      if (arg && !arg.startsWith('-') && arg !== 'JavaScript') {
-        userArgs.push(arg);
-        break;
-      }
-    }
-  }
-  return userArgs;
+export function nativeParseArgs():string[]{
+  if(typeof ObjC==='undefined')return [];
+  const raw=ObjC.unwrap($.NSProcessInfo.processInfo.arguments);
+  const values:string[]=[];let sep=false;
+  for(let i=0;i<raw.length;i++){const a=toJsString(raw[i]);if(sep&&a)values.push(a);else if(a==='--')sep=true;}
+  if(!sep&&raw.length){const a=toJsString(raw[raw.length-1]);if(a)values.push(a);}
+  return values;
 }

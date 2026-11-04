@@ -4,7 +4,7 @@ macOS JXA + JavaScriptCore + WASM PDF-to-Markdown batch converter.
 
 ## Architecture
 
-Node (development entry) builds and launches JXA; standalone `dist/anydoc-wasm.jxa.js` launches JXA without Node. JXA enumerates every PDF in the specified directory, reads one PDF at a time through the native macOS `/usr/bin/base64` utility and sends its bytes to a single JSC child process via stdin. The JSC process initializes the embedded WASM exactly once, loops over PDF inputs, calls `toMarkdownBytes(bytes, 'pdf')`, and prints Markdown result markers. JXA writes a matching `.md` beside each PDF. PDF bytes are not compiled into the distributable JS. The WASM has no direct macOS filesystem access.
+Node (development entry) builds and launches JXA; standalone `dist/anydoc-wasm.jxa.js` launches JXA without Node. JXA enumerates every PDF in the specified directory, uses Foundation/Objective-C to read each PDF, and sends a binary-safe Base64 representation through stdin to the one JSC child process. JXA also decodes the embedded WASM Base64 into NSData before preparing the worker; the cross-process JSC worker reconstructs the byte array to instantiate the module. The JSC process initializes the embedded WASM exactly once, loops over PDF inputs, calls `toMarkdownBytes(bytes, 'pdf')`, and prints Markdown result markers. JXA writes a matching `.md` beside each PDF. PDF bytes are not compiled into the distributable JS. The WASM has no direct macOS filesystem access.
 
 ## Usage
 

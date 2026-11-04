@@ -2,23 +2,17 @@ if (typeof ObjC !== 'undefined' && typeof ObjC.import === 'function') ObjC.impor
 export function toNsString(str:string):any{return $.NSString.stringWithString(String(str));}
 export function toJsString(obj:any):string{if(!obj)return '';const val=ObjC.unwrap(obj);return val===null||val===undefined?'':String(val);}
 export function nativeFileExists(path:string):boolean{return Boolean($.NSFileManager.defaultManager.fileExistsAtPath(toNsString(path)));}
-export function nativeReadBinaryAsBase64(path:string):string{
-  // Foundation's base64EncodedStringWithOptions is not consistently exposed by JXA.
-  // /usr/bin/base64 is a macOS system utility; its output is normalized to one line.
-  const task=$.NSTask.alloc.init;
-  task.setLaunchPath(toNsString('/usr/bin/base64'));
-  const args=$.NSMutableArray.alloc.init;
-  args.addObject(toNsString('-i'));args.addObject(toNsString(path));
-  task.setArguments(args);
-  const pipe=$.NSPipe.pipe;
-  task.setStandardOutput(pipe);
-  task.setStandardError(pipe);
-  task.launch;
-  const data=pipe.fileHandleForReading.readDataToEndOfFile;
-  task.waitUntilExit;
-  const value=toJsString($.NSString.alloc.initWithDataEncoding(data,4));
-  if(task.terminationStatus!==0||!value.trim())throw new Error('PDF base64 encoding failed: '+path+' '+value.slice(-500));
-  return value.replace(/\\s+/g,'');
+/** Decode the bundled WASM with Foundation in JXA (once per batch). */
+export function nativeDecodeWasmBase64(encoded:string):any {
+  const data=$.NSData.alloc.initWithBase64EncodedStringOptions(toNsString(encoded),0);
+  if(!data || Number(data.length)<8)throw new Error('Invalid embedded WASM');
+  return data;
+}
+/** Native Foundation PDF read. Encoding is only the transport format to JSC. */
+export function nativeReadBinaryAsBase64(path:string):string {
+  const data=$.NSData.dataWithContentsOfFile(toNsString(path));
+  if(!data || Number(data.length)===0)throw new Error('Cannot read PDF: '+path);
+  return toJsString(data.base64EncodedStringWithOptions(0));
 }
 export function nativeWriteTextFile(path:string,content:string):void{
   const ok=toNsString(content).writeToFileAtomicallyEncodingError(toNsString(path),true,4,Ref());

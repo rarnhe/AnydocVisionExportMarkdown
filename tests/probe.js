@@ -94,9 +94,9 @@ function collect() {
       typeof ObjC.import === "function",function(){
     ObjC.import("Foundation");
     var dir=ObjC.unwrap($.NSTemporaryDirectory());
-    var path=dir + "/JxaVsJsc-" + String(Date.now()) + ".txt";
+    var path=dir + "/AnyDoc-JXA-" + String(Date.now()) + ".txt";
     var manager=$.NSFileManager.defaultManager;
-    var value=$.NSString.stringWithString("JxaVsJsc");
+    var value=$.NSString.stringWithString("AnyDoc-JXA");
     var wrote=false;
     try {
       wrote=value.writeToFileAtomicallyEncodingError(
@@ -104,7 +104,7 @@ function collect() {
       if(!wrote) throw Error("NSString write failed");
       var read=$.NSString.stringWithContentsOfFileEncodingError(
         path,$.NSUTF8StringEncoding,null);
-      if(ObjC.unwrap(read) !== "JxaVsJsc") throw Error("Readback mismatch");
+      if(ObjC.unwrap(read) !== "AnyDoc-JXA") throw Error("Readback mismatch");
       return "temporary file write/read success";
     } finally {
       if(wrote) manager.removeItemAtPathError(path,null);

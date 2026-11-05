@@ -1,6 +1,6 @@
 /* Common real-world AnyDoc WASM execution kernel for JXA and Node validation.
  * Generated scripts inject WASM and PDF base64 plus esbuild-transformed wasm-bindgen glue.
- * The JXA runtime never starts JSC, Node, or another subprocess.
+ * The JXA runtime performs conversion in-process without spawning another process.
  */
 function anydocBase64ToBytes(input) {
   var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

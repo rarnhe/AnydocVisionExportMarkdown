@@ -100,7 +100,7 @@ function main(): number {
     "## 真实 AnyDoc WebAssembly 转换（Node 对照 + JXA 原生执行）", "",
     "- 安装版本：@firecrawl/anydoc-wasm@0.2.4 + esbuild@0.28.2。",
     "- 输入文件：tests/chunk_1.pdf；" + (pdf ? "size=" + pdf.byteLength + " bytes; SHA256=" + createHash("sha256").update(pdf).digest("hex") : "missing"),
-    "- 模式：JXA 在自己的进程直接构造真实 WASM Module、initSync 并调用 toMarkdownBytes；不启动 JSC 子进程。",
+    "- 模式：JXA 在自己的进程直接构造真实 WASM Module、initSync 并调用 toMarkdownBytes；不依赖其他 JavaScript 运行时进程。",
     "- Node 仅负责构建脚本和独立正向对照。",
     "- 总结论：**" + (success ? "PASS" : "FAIL") + "**", "",
     "| 测试 | 结果 | 阶段 | WASM 字节 | validate | wasm-bindgen 初始化 | Markdown 字节 | SHA256 | 说明 |",

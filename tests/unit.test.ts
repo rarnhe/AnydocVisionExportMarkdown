@@ -27,7 +27,7 @@ test("Markdown report escaping handles pipes and newlines", () => {
   assert.equal(mdEscape("a|b\nc"), "a\\|b c");
 });
 test("AnyDoc parser accepts trailing output", () => {
-  const value = {schema: 1, engine: "JSC", success: false};
+  const value = {schema: 1, engine: "JXA", success: false};
   assert.deepEqual(extractAnyDocResult("noise\n" + ANYDOC_PREFIX + JSON.stringify(value) + "\ntrailing"), value);
 });
 test("AnyDoc parser rejects missing marker and invalid schema", () => {

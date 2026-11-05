@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-05T16:52:51.105Z
+- 测试时间 (UTC): 2026-11-05T16:54:31.202Z
 - 系统: ProductName:		macOS; ProductVersion:		26.6.2; BuildVersion:		25G83
 - Node.js: v24.22.1
-- GitHub SHA: dcb0edf330be57f9b3c2cda293e669d8aa631baf
-- GitHub Run: 42068908589
+- GitHub SHA: 093ba4e523fa806c0e5e29ed7f962bbbce3ea866
+- GitHub Run: 42069152999
 
 ## 测试状态
 
@@ -89,7 +89,7 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 - 安装版本：@firecrawl/anydoc-wasm@0.2.4 + esbuild@0.28.2。
 - 输入文件：tests/chunk_1.pdf；size=530915 bytes; SHA256=d4e7ce42c916d50b0be298f7d4a2520bb88cc3f8f1480aa14af78e9f0af2063d
-- 模式：JXA 在自己的进程直接构造真实 WASM Module、initSync 并调用 toMarkdownBytes；不启动 JSC 子进程。
+- 模式：JXA 在自己的进程直接构造真实 WASM Module、initSync 并调用 toMarkdownBytes；不依赖其他 JavaScript 运行时进程。
 - Node 仅负责构建脚本和独立正向对照。
 - 总结论：**PASS**
 
@@ -107,7 +107,7 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 ## JXA 单进程 + ObjC 文件系统 + WASM 单例：真实 PDF 转 Markdown
 
-- Node/tsx 与 JXA 共用 TypeScript WASM 引擎；JXA 运行时仅 Foundation + WASM，不启动 JSC 子进程。
+- Node/tsx 与 JXA 共用 TypeScript WASM 引擎；JXA 运行时仅 Foundation + WASM，不启动外部解释器或子进程。
 - 每个进程处理原始 PDF 与同字节副本，断言 WASM 初始化 1 次、转换 2 次。
 - Node TSX、JXA osascript、JXA 可执行文件生成的 Markdown MD5 必须一致。
 - 历史真实 AnyDoc SHA256 基准：2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131

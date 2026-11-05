@@ -65,7 +65,7 @@ function main(){
  const baseline=modes.every(m=>rows.find(r=>r.name===m.name)?.sha256===golden);
  const passed=rows.every(r=>r.pass)&&equal&&baseline;
  const lines=["## JXA 单进程 + ObjC 文件系统 + WASM 单例：真实 PDF 转 Markdown","",
- "- Node/tsx 与 JXA 共用 TypeScript WASM 引擎；JXA 运行时仅 Foundation + WASM，不启动 JSC 子进程。",
+ "- Node/tsx 与 JXA 共用 TypeScript WASM 引擎；JXA 运行时仅 Foundation + WASM，不启动外部解释器或子进程。",
  "- 每个进程处理原始 PDF 与同字节副本，断言 WASM 初始化 1 次、转换 2 次。",
  "- Node TSX、JXA osascript、JXA 可执行文件生成的 Markdown MD5 必须一致。",
  "- 历史真实 AnyDoc SHA256 基准："+golden,"- 结论：**"+(passed?"PASS":"FAIL")+"**","",

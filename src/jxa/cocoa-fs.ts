@@ -1,90 +1,38 @@
-if (typeof ObjC !== 'undefined' && typeof ObjC.import === 'function') {
-  ObjC.import('Foundation');
+import { decodeBase64 } from "../shared/base64";
+import type { FilePort } from "../core/batch";
+
+declare const ObjC: any;
+declare const $: any;
+
+/** Foundation-only file system bridge; no NSTask, Apple Events, or JSC subprocess. */
+function ns(value: string): any {
+  return $.NSString.stringWithString(String(value));
 }
 
-export function toNsString(str: string): any {
-  if (str === null || str === undefined) return $.NSString.string;
-  return $.NSString.stringWithString(String(str));
-}
-
-export function toJsString(obj: any): string {
-  if (!obj) return '';
-  const unwrapped = ObjC.unwrap(obj);
-  return unwrapped ? String(unwrapped) : '';
-}
-
-export function nativeFileExists(pathStr: string): boolean {
-  if (!pathStr) return false;
+export function createCocoaFilePort(): FilePort {
+  if (typeof ObjC === "undefined") throw new Error("JXA Objective-C bridge unavailable");
+  ObjC.import("Foundation");
   const fm = $.NSFileManager.defaultManager;
-  return fm.fileExistsAtPath(toNsString(pathStr));
-}
-
-export function nativeReadBinaryAsBase64(pathStr: string): string {
-  const nsPath = toNsString(pathStr);
-  const data = $.NSData.dataWithContentsOfFile(nsPath);
-  if (!data || data.length === 0) {
-    throw new Error(`无法读取文件或文件为空: ${pathStr}`);
-  }
-  return ObjC.unwrap(data.base64EncodedStringWithOptions(0));
-}
-
-export function nativeWriteTextFile(pathStr: string, content: string): void {
-  const nsStr = toNsString(content);
-  const nsPath = toNsString(pathStr);
-  const success = nsStr.writeToFileAtomicallyEncodingError(
-    nsPath, true, 4 /* NSUTF8StringEncoding */, null
-  );
-  if (!success) {
-    throw new Error(`写入文件失败: ${pathStr}`);
-  }
-}
-
-export function nativeRemoveFile(pathStr: string): void {
-  const fm = $.NSFileManager.defaultManager;
-  const nsPath = toNsString(pathStr);
-  if (fm.fileExistsAtPath(nsPath)) {
-    fm.removeItemAtPathError(nsPath, null);
-  }
-}
-
-export function nativeJoinPath(dir: string, file: string): string {
-  const nsDir = toNsString(dir);
-  return toJsString(nsDir.stringByAppendingPathComponent(toNsString(file)));
-}
-
-export function nativeGetTmpDir(): string {
-  return toJsString($.NSTemporaryDirectory());
-}
-
-export function nativeGetEnv(key: string): string {
-  if (typeof ObjC === 'undefined') return '';
-  const envDict = $.NSProcessInfo.processInfo.environment;
-  const nsVal = envDict.objectForKey(toNsString(key));
-  return toJsString(nsVal);
-}
-
-export function nativeParseArgs(): string[] {
-  if (typeof ObjC === 'undefined') return [];
-  const processInfo = $.NSProcessInfo.processInfo;
-  const rawArgs = ObjC.unwrap(processInfo.arguments);
-  const userArgs: string[] = [];
-  let separatorFound = false;
-  for (let i = 0; i < rawArgs.length; i++) {
-    const arg = toJsString(rawArgs[i]);
-    if (separatorFound) {
-      if (arg) userArgs.push(arg);
-    } else if (arg === '--') {
-      separatorFound = true;
+  return {
+    readBytes(path: string): Uint8Array {
+      const data = $.NSData.dataWithContentsOfFile(ns(path));
+      if (!data || Number(data.length) < 5) throw new Error("Missing/empty PDF: " + path);
+      // NSData is the only binary source; Base64 crosses the ObjC->JS bridge without byte truncation.
+      const base64 = ObjC.unwrap(data.base64EncodedStringWithOptions(0));
+      if (typeof base64 !== "string") throw new Error("NSData Base64 bridge returned non-string");
+      return decodeBase64(base64);
+    },
+    writeText(path: string, content: string): void {
+      const ok = ns(content).writeToFileAtomicallyEncodingError(
+        ns(path), true, $.NSUTF8StringEncoding, null
+      );
+      if (!ok) throw new Error("Foundation could not write " + path);
+    },
+    ensureDirectory(path: string): void {
+      const ok = fm.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
+        ns(path), true, $.NSDictionary.dictionary, null
+      );
+      if (!ok) throw new Error("Foundation could not create directory " + path);
     }
-  }
-  if (!separatorFound && rawArgs.length > 0) {
-    for (let i = rawArgs.length - 1; i >= 0; i--) {
-      const arg = toJsString(rawArgs[i]);
-      if (arg && !arg.startsWith('-') && arg !== 'JavaScript') {
-        userArgs.push(arg);
-        break;
-      }
-    }
-  }
-  return userArgs;
+  };
 }

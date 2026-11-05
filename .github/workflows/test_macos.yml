@@ -1,0 +1,140 @@
+name: macOS JXA-only AnyDoc validation
+
+on:
+  push:
+    branches: [main, 'test/**', 'feature/**', 'migration/**']
+    paths-ignore:
+      - test_report.md
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: anydoc-jxa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Install pinned dependencies
+        id: deps
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p tests/output
+          npm install --no-package-lock 2>&1 | tee tests/output/npm-install.log
+
+      - name: Check JXA-only source layout and Node 24 installation
+        id: doctor
+        if: always()
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node --version
+          npm run doctor 2>&1 | tee tests/output/doctor.log
+
+      - name: TypeScript static typecheck (application and tests)
+        id: types
+        if: always()
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run typecheck 2>&1 | tee tests/output/typecheck.log
+
+      - name: TypeScript unit tests and native JXA capability probe
+        id: probes
+        if: always()
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run test:probes 2>&1 | tee tests/output/probes-runner.log
+
+      - name: Real AnyDoc WASM conversion baseline (Node and JXA)
+        id: baseline
+        if: always()
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run test:anydoc 2>&1 | tee tests/output/anydoc-runner.log
+
+      - name: JXA singleton and Node/TSX Markdown MD5 regression
+        id: singleton
+        if: always()
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run test:singleton 2>&1 | tee tests/output/singleton-runner.log
+
+      - name: Complete job and summarize dual-track report
+        if: always()
+        run: |
+          if [ ! -f test_report.md ]; then
+            printf '# JXA 测试报告\n\n- FAIL: test runner did not produce a report.\n' > test_report.md
+          fi
+          {
+            echo
+            echo '## CI 最终阶段状态'
+            echo '- Dependencies: ${{ steps.deps.outcome }}'
+            echo '- Checkout / Node 24 doctor: ${{ steps.doctor.outcome }}'
+            echo '- TypeScript typecheck: ${{ steps.types.outcome }}'
+            echo '- TypeScript unit tests + JXA native probe: ${{ steps.probes.outcome }}'
+            echo '- Real AnyDoc Node/JXA baseline: ${{ steps.baseline.outcome }}'
+            echo '- JXA single-process singleton MD5 comparison: ${{ steps.singleton.outcome }}'
+          } >> test_report.md
+          cat test_report.md >> "$GITHUB_STEP_SUMMARY"
+          cat test_report.md
+
+      - name: Upload report / real Markdown / diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: macos-jxa-typescript-singleton-report
+          path: |
+            test_report.md
+            tests/output/
+            !tests/output/*.js
+          if-no-files-found: warn
+
+      - name: Safely commit ONLY test_report.md to source branch
+        if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/test/') || startsWith(github.ref, 'refs/heads/migration/')) }}
+        continue-on-error: true
+        env:
+          REPORT_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git add -- test_report.md
+          if git diff --cached --quiet; then
+            echo "No report changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "ci: update JXA test_report.md [skip ci]"
+          git push origin "HEAD:refs/heads/${REPORT_BRANCH}"
+
+      - name: Fail job on any failed assertions
+        if: always()
+        run: |
+          test "${{ steps.deps.outcome }}" = success
+          test "${{ steps.doctor.outcome }}" = success
+          test "${{ steps.types.outcome }}" = success
+          test "${{ steps.probes.outcome }}" = success
+          test "${{ steps.baseline.outcome }}" = success
+          test "${{ steps.singleton.outcome }}" = success

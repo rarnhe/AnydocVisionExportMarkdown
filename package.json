@@ -1,19 +1,25 @@
 {
-  "name": "node_jxa_jsc_wasm",
-  "version": "1.0.0",
-  "description": "",
-  "main": "build.js",
+  "name": "anydoc-vision-export-markdown",
+  "version": "2.0.0",
+  "private": true,
+  "description": "macOS PDF to Markdown using JXA, Objective-C Foundation and a singleton WebAssembly engine",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "node build.js",
+    "convert:node": "tsx src/node/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && npm run test:probes && npm run test:anydoc && npm run test:singleton",
+    "test:unit": "tsx --test tests/unit.test.ts",
+    "test:probes": "tsx tests/run-probes.ts",
+    "test:anydoc": "tsx tests/run-anydoc.ts",
+    "test:singleton": "tsx tests/run-single-process.ts",
+    "build:anydoc:probe": "node tests/build-anydoc.cjs",
+    "doctor": "node scripts/doctor.cjs"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "devDependencies": {
-    "@firecrawl/anydoc-wasm": "^0.2.4",
-    "@types/node": "^26.6.5",
-    "esbuild": "^0.28.2",
-    "tsx": "^4.23.15"
+    "@firecrawl/anydoc-wasm": "0.2.4",
+    "esbuild": "0.28.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "@types/node": "22.18.9"
   }
 }

@@ -37,6 +37,7 @@ export function createCocoaFilePort(): FilePort {
       return decodeBase64(base64);
     },
     writeText(path, content) {
+      if (stat(path) !== "missing") throw new Error("Markdown already exists: " + path);
       const ok = ns(content).writeToFileAtomicallyEncodingError(ns(path), true, $.NSUTF8StringEncoding, null);
       if (!ok) throw new Error("Foundation could not write " + path);
     },

@@ -106,3 +106,8 @@ src/
 开发阶段：`npx --no-install tsx src/hosts/node.ts ./tests/chunk_1.pdf`；构建阶段：`node build.js`；交付产物：`dist/anydoc-wasm.jxa.js`，在 macOS 使用 `osascript -l JavaScript` 或直接执行。JXA 运行时不依赖 Node/npm，也不启动 JSC 子进程。Node 与 JXA 共享 core 和 ports，仅 adapters/hosts 依宿主切换。
 
 依赖版本由 `package.json` 精确指定、`package-lock.json` 固定依赖树；首次安装与 CI 均使用 `npm ci`。所有源码变更均由 macOS GitHub Actions 执行 TS 类型检查、JXA 宿主能力探针、真实 WASM 转换和双 PDF 单例测试，测试报告写入 `test_report.md`。
+
+
+### 单一 WASM 资产加载入口
+
+`tools/wasm-assets.cjs` 是 Node 开发与构建共用的唯一 WASM/Glue 加载实现：解析 npm 包、读取并校验 WASM、选择 Glue、转换为 IIFE。根目录 `build.js` 与 `src/hosts/node-assets.ts` 均委托它处理，避免依赖升级时双处维护。该 CJS 工具**仅在 Node 环境使用**，不参与 JXA 运行时打包；JXA 继续从编译后的 JS 内嵌常量获取 WASM/Glue。

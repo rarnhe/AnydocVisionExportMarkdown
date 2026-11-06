@@ -121,7 +121,8 @@ test("recursive directory processor plans nested PDF paths", async () => {
     writeFileSync(path.join(temp,"nested","skip.txt"),"skip");
     const plan=planConversions([temp],createNodeFilePort());
     assert.deepEqual(plan.map(x=>x.output),[temp+"_md/A.md",temp+"_md/nested/B.md"]);
-    assert.throws(()=>planConversions([temp,path.join(temp,"A.pdf")],createNodeFilePort()),/exactly one directory/);\n    assert.throws(()=>planConversions([path.join(temp,"A.pdf")],createNodeFilePort()),/Expected an existing directory/);
+    assert.throws(()=>planConversions([temp,path.join(temp,"A.pdf")],createNodeFilePort()),/exactly one directory/);
+    assert.throws(()=>planConversions([path.join(temp,"A.pdf")],createNodeFilePort()),/Expected an existing directory/);
   } finally {rmSync(temp,{recursive:true,force:true});}
 });
 

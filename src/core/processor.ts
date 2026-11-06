@@ -96,11 +96,19 @@ export function processInputs(
   argv: string[], port: FilePort, assets: AnyDocAssets, runtime: "Node" | "JXA"
 ): ProcessingResult {
   const tasks = planConversions(argv, port);
-  const conversions: ConversionResult[] = [];\n  const skipped: Array<{input: string; output: string}> = [];
+  const conversions: ConversionResult[] = [];
+  const skipped: Array<{input: string; output: string}> = [];
   const failures: Array<{input: string; message: string}> = [];
-  if (tasks.length) {
+  const pending = tasks.filter(task => {
+    const kind = port.stat(task.output);
+    if (kind === "missing") return true;
+    if (kind !== "file") throw new Error("Output is not a regular file: " + task.output);
+    skipped.push({input: task.input, output: task.output});
+    return false;
+  });
+  if (pending.length) {
     const engine = getAnyDocSingleton(assets);
-    for (const task of tasks) {
+    for (const task of pending) {
       try {
         const content = engine.convertPdf(port.readBytes(task.input));
         port.ensureDirectory(parent(task.output));
@@ -114,7 +122,8 @@ export function processInputs(
   return {
     schema: 1, runtime, mode: "single-process",
     wasmInitializationCount: getWasmInitializationCount(),
-    conversionCount: conversions.length, conversions,\n    skippedCount: skipped.length, skipped,
+    conversionCount: conversions.length, conversions,
+    skippedCount: skipped.length, skipped,
     failureCount: failures.length, failures
   };
 }

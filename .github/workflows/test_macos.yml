@@ -104,7 +104,8 @@ jobs:
             echo '- TypeScript typecheck: ${{ steps.types.outcome }}'
             echo '- TypeScript unit tests + JXA native probe: ${{ steps.probes.outcome }}'
             echo '- Real AnyDoc Node/JXA baseline: ${{ steps.baseline.outcome }}'
-            echo '- JXA single-process singleton MD5 comparison: ${{ steps.singleton.outcome }}'\n            echo '- Recursive directory conversion: ${{ steps.directory.outcome }}'
+            echo '- JXA single-process singleton MD5 comparison: ${{ steps.singleton.outcome }}'
+            echo '- Recursive directory conversion: ${{ steps.directory.outcome }}'
           } >> test_report.md
           cat test_report.md >> "$GITHUB_STEP_SUMMARY"
           cat test_report.md

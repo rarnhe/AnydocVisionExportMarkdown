@@ -82,7 +82,7 @@ test("package build and doctor scripts are declared", () => {
   const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
   assert.match(source, /anydoc-wasm\.jxa\.js/);
   assert.equal(pkg.scripts.build, "node build.js");
-  assert.equal(pkg.scripts.doctor, "node scripts/doctor.cjs");
+  assert.equal(pkg.scripts.doctor, "node tests/doctor.cjs");
 });
 
 
@@ -105,13 +105,14 @@ test("production JXA entry and Node host share core but not host APIs", () => {
   assert.doesNotMatch(core, /node:fs|ObjC|\.\/cocoa-fs/);
 });
 
-test("build and Node TSX host share exactly one WASM asset loader", () => {
+test("build and TSX development use one TypeScript asset loader", () => {
   const build = readFileSync(path.join(ROOT, "build.js"), "utf8");
-  const nodeAssets = readFileSync(path.join(ROOT, "src/hosts/node-assets.ts"), "utf8");
-  const helper = readFileSync(path.join(ROOT, "tools/wasm-assets.cjs"), "utf8");
+  const loader = readFileSync(path.join(ROOT, "src/hosts/node-assets.ts"), "utf8");
   const jxa = readFileSync(path.join(ROOT, "src/hosts/jxa.ts"), "utf8");
-  assert.match(build, /tools\\/wasm-assets\\.cjs/);
-  assert.match(nodeAssets, /tools\\/wasm-assets\\.cjs/);
-  assert.match(helper, /require\\.resolve\\("@firecrawl\\/anydoc-wasm"\\)/);
-  assert.doesNotMatch(jxa, /wasm-assets|node-assets|node:fs|require\\(/);
+  assert.match(build, /require\("tsx\/cjs"\)/);
+  assert.match(build, /src\/hosts\/node-assets\.ts/);
+  assert.match(loader, /require\.resolve\("@firecrawl\/anydoc-wasm"\)/);
+  assert.match(loader, /esbuild\.transformSync/);
+  assert.doesNotMatch(jxa, /node-assets|node:fs|require\(/);
+  assert.equal(statSync(path.join(ROOT, "tests/doctor.cjs")).isFile(), true);
 });

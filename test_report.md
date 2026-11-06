@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-06T08:28:32.248Z
+- 测试时间 (UTC): 2026-11-06T08:32:21.363Z
 - 系统: ProductName:		macOS; ProductVersion:		26.6.2; BuildVersion:		25G83
 - Node.js: v24.22.1
-- GitHub SHA: e62d5598983307b19ea989af3448e72ff208d1af
-- GitHub Run: 42187917706
+- GitHub SHA: 391c16537b7d156849cb43159cfbeea00d8b5f03
+- GitHub Run: 42188353122
 
 ## 测试状态
 
@@ -104,14 +104,10 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 - npm ci: **SUCCESS**
 - Doctor: **SUCCESS**
 - TypeScript typecheck: **SUCCESS**
-- Unit tests + JXA probe: **SUCCESS**
-- Node/JXA recursive directory SHA256: **SUCCESS**
+- Unit + JXA probe: **SUCCESS**
+- Node/JXA directory SHA256: **SUCCESS**
 
-## 失败日志摘要
+## 失败阶段日志摘要
 
+- 无，所有必要阶段通过。
 
-### Probes
-
-```text
-unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested: 涉及授权/交互而主动跳过。
-```

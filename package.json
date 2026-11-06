@@ -13,7 +13,7 @@
     "test:anydoc": "tsx tests/run-anydoc.ts",
     "test:singleton": "tsx tests/run-single-process.ts",
     "build:anydoc:probe": "node tests/build-anydoc.cjs",
-    "doctor": "node scripts/doctor.cjs"
+    "doctor": "node tests/doctor.cjs"
   },
   "devDependencies": {
     "@firecrawl/anydoc-wasm": "0.2.4",

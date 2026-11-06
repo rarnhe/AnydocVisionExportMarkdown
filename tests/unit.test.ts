@@ -53,8 +53,8 @@ test("Markdown validator accepts UTF-8 and rejects short or placeholder content"
   assert.throws(() => validateMarkdownBytes(new TextEncoder().encode("short")), /too short/);
   assert.throws(() => validateMarkdownBytes(new TextEncoder().encode("MARKDOWN_OUTPUT_START " + "x".repeat(50))), /Placeholder/);
 });
-test("PR #3 build and CLI source files exist", () => {
-  for (const file of ["build.js", "src/node/cli.ts", "src/jxa/entry.ts", "src/core/anydoc-engine.ts", "src/jxa/cocoa-fs.ts"]) {
+test("TS to JXA ports/adapters template files exist", () => {
+  for (const file of ["build.js", "package-lock.json", "src/hosts/node.ts", "src/hosts/jxa.ts", "src/core/engine.ts", "src/core/batch.ts", "src/ports/file-port.ts", "src/adapters/node-fs.ts", "src/adapters/cocoa-fs.ts"]) {
     assert.equal(statSync(path.join(ROOT, file)).isFile(), true, file);
   }
 });
@@ -82,5 +82,37 @@ test("package build and doctor scripts are declared", () => {
   const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
   assert.match(source, /anydoc-wasm\.jxa\.js/);
   assert.equal(pkg.scripts.build, "node build.js");
-  assert.equal(pkg.scripts.doctor, "node scripts/doctor.cjs");
+  assert.equal(pkg.scripts.doctor, "node tests/doctor.cjs");
+});
+
+
+test("CI uses reproducible npm ci with committed lockfile", () => {
+  const workflow = readFileSync(path.join(ROOT, ".github/workflows/test_macos.yml"), "utf8");
+  const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  const lock = JSON.parse(readFileSync(path.join(ROOT, "package-lock.json"), "utf8"));
+  assert.match(workflow, /npm ci/);
+  assert.equal(lock.lockfileVersion, 3);
+  assert.deepEqual(lock.packages[""].devDependencies, pkg.devDependencies);
+});
+
+test("production JXA entry and Node host share core but not host APIs", () => {
+  const jxa = readFileSync(path.join(ROOT, "src/hosts/jxa.ts"), "utf8");
+  const node = readFileSync(path.join(ROOT, "src/hosts/node.ts"), "utf8");
+  const core = readFileSync(path.join(ROOT, "src/core/batch.ts"), "utf8");
+  assert.match(jxa, /\.\.\/adapters\/cocoa-fs/);
+  assert.match(node, /\.\.\/adapters\/node-fs/);
+  assert.match(core, /\.\.\/ports\/file-port/);
+  assert.doesNotMatch(core, /node:fs|ObjC|\.\/cocoa-fs/);
+});
+
+test("build and TSX development use one TypeScript asset loader", () => {
+  const build = readFileSync(path.join(ROOT, "build.js"), "utf8");
+  const loader = readFileSync(path.join(ROOT, "src/hosts/node-assets.ts"), "utf8");
+  const jxa = readFileSync(path.join(ROOT, "src/hosts/jxa.ts"), "utf8");
+  assert.match(build, /require\("tsx\/cjs"\)/);
+  assert.match(build, /src\/hosts\/node-assets\.ts/);
+  assert.match(loader, /require\.resolve\("@firecrawl\/anydoc-wasm"\)/);
+  assert.match(loader, /esbuild\.transformSync/);
+  assert.doesNotMatch(jxa, /node-assets|node:fs|require\(/);
+  assert.equal(statSync(path.join(ROOT, "tests/doctor.cjs")).isFile(), true);
 });

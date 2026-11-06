@@ -1,6 +1,6 @@
 import { decodeBase64 } from "../shared/base64";
 import { convertBatch } from "../core/batch";
-import { createCocoaFilePort } from "./cocoa-fs";
+import { createCocoaFilePort } from "../adapters/cocoa-fs";
 
 /** Replaced with package bytes and esbuild-transformed glue by root build.js. */
 declare const __EMBEDDED_WASM_B64__: string;

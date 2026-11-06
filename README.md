@@ -21,7 +21,7 @@ JXA 运行时不启动 JSC、NSTask、Node 子进程或其他解释器。
 - npm
 
 ```bash
-npm install
+npm ci
 npm run doctor
 npm run typecheck
 ```
@@ -31,7 +31,7 @@ npm run typecheck
 ### 开发模式（Node + TypeScript）
 
 ```bash
-npx --no-install tsx src/node/cli.ts ./tests/chunk_1.pdf
+npx --no-install tsx src/hosts/node.ts ./tests/chunk_1.pdf
 ```
 
 ### 构建独立 JXA 程序
@@ -90,3 +90,27 @@ npm run test:singleton
 GitHub Actions 在 macOS + Node.js 24 上运行 TypeScript 静态检查、JXA 能力边界探针、真实 WASM 转换及多 PDF 单例回归。无论测试成功或失败，都会生成/保留 `test_report.md`，并上传日志和 Markdown 结果 Artifact。
 
 `test_report.md` 由 TypeScript 测试程序生成；CI 仅回写报告文件，并忽略报告文件的 push 触发，避免工作流循环。
+
+
+## TypeScript → JXA 模板分层
+
+```text
+src/
+├── core/         engine.ts（WASM 单例）+ batch.ts（转换编排）
+├── ports/        file-port.ts（文件系统抽象契约）
+├── adapters/     node-fs.ts + cocoa-fs.ts（宿主实现）
+├── hosts/        node.ts（TSX 开发入口）+ node-assets.ts（统一 WASM 资产加载）+ jxa.ts（JXA 发布入口）
+└── shared/       base64.ts + polyfills.ts
+```
+
+开发阶段：`npx --no-install tsx src/hosts/node.ts ./tests/chunk_1.pdf`；构建阶段：`node build.js`；交付产物：`dist/anydoc-wasm.jxa.js`，在 macOS 使用 `osascript -l JavaScript` 或直接执行。JXA 运行时不依赖 Node/npm，也不启动 JSC 子进程。Node 与 JXA 共享 core 和 ports，仅 adapters/hosts 依宿主切换。
+
+依赖版本由 `package.json` 精确指定、`package-lock.json` 固定依赖树；首次安装与 CI 均使用 `npm ci`。所有源码变更均由 macOS GitHub Actions 执行 TS 类型检查、JXA 宿主能力探针、真实 WASM 转换和双 PDF 单例测试，测试报告写入 `test_report.md`。
+
+
+### 单一 WASM 资产加载入口
+
+`src/hosts/node-assets.ts` 是 Node 开发与构建共用的唯一 WASM/Glue 加载实现：解析 npm 包、读取并校验 WASM、选择 Glue、转换为 IIFE。根目录 `build.js` 通过 `tsx/cjs` 直接加载该 TypeScript 模块，Node 开发入口也直接调用它，避免依赖升级时双处维护。该 TypeScript 模块**仅在 Node 环境使用**，不参与 JXA 运行时打包；JXA 继续从编译后的 JS 内嵌常量获取 WASM/Glue。
+
+
+项目不再使用额外的 `tools/`、`scripts/` 目录。Node 专用 WASM 资产加载位于 `src/hosts/node-assets.ts`，诊断脚本位于 `tests/doctor.cjs`；根目录仅保留构建入口及 npm 配置。

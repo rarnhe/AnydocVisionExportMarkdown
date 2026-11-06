@@ -5,10 +5,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const required = [
-  "build.js", "package.json", "tsconfig.json",
-  "src/node/cli.ts", "src/node/node-fs.ts", "src/node/package-assets.ts",
-  "src/jxa/entry.ts", "src/jxa/cocoa-fs.ts",
-  "src/core/anydoc-engine.ts", "src/core/batch.ts", "src/shared/base64.ts",
+  "build.js", "package.json", "package-lock.json", "tsconfig.json",
+  "src/hosts/node.ts", "src/hosts/node-assets.ts", "src/hosts/jxa.ts",
+  "src/adapters/node-fs.ts", "src/adapters/cocoa-fs.ts",
+  "src/core/engine.ts", "src/core/batch.ts", "src/ports/file-port.ts", "src/shared/base64.ts",
   "tests/chunk_1.pdf", "tests/unit.test.ts", "tests/test-utils.ts",
   "tests/probe.js", "tests/run-probes.ts", "tests/run-anydoc.ts", "tests/run-single-process.ts"
 ];
@@ -24,7 +24,7 @@ for (const file of required) {
 }
 for (const dep of ["tsx", "esbuild", "@firecrawl/anydoc-wasm", "typescript"]) {
   if (!fs.existsSync(path.join(root, "node_modules", ...dep.split("/")))) {
-    failures.push("Dependency missing: " + dep + " (run npm install)");
+    failures.push("Dependency missing: " + dep + " (run npm ci)");
   } else output("OK", "Installed " + dep);
 }
 if (fs.existsSync(path.join(root, "src", "jsc"))) failures.push("Obsolete src/jsc directory must not exist.");
@@ -39,6 +39,6 @@ walk(path.join(root, "src"), (file) => !file.endsWith(".ts"), "Non-TypeScript ap
 walk(path.join(root, "tests"), (file) => file.endsWith(".py"), "Python test file is not allowed: ");
 for (const failure of failures) output("FAIL", failure);
 if (failures.length) {
-  output("HELP", "Run: npm install && npm run doctor && npm test");
+  output("HELP", "Run: npm ci && npm run doctor && npm test");
   process.exitCode = 1;
 } else output("PASS", "JXA-only TypeScript/JavaScript test checkout and dependencies are ready.");

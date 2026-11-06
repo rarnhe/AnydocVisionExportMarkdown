@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import type { FilePort } from "../core/batch";
+import type { FilePort } from "../ports/file-port";
 
 export function createNodeFilePort(): FilePort {
   return {

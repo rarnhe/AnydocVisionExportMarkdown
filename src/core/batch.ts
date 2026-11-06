@@ -1,10 +1,6 @@
-import { AnyDocAssets, getAnyDocSingleton, getWasmInitializationCount } from "./anydoc-engine";
+import { AnyDocAssets, getAnyDocSingleton, getWasmInitializationCount } from "./engine";
 
-export interface FilePort {
-  readBytes(path: string): Uint8Array;
-  writeText(path: string, content: string): void;
-  ensureDirectory(path: string): void;
-}
+import type { FilePort } from "../ports/file-port";
 
 export interface ConversionResult {
   input: string;

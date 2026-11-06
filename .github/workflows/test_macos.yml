@@ -82,6 +82,14 @@ jobs:
           set -o pipefail
           npm run test:singleton 2>&1 | tee tests/output/singleton-runner.log
 
+      - name: Recursive directory conversion Node/JXA parity
+        id: directory
+        if: always()
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run test:directory 2>&1 | tee tests/output/directory-runner.log
+
       - name: Complete job and summarize dual-track report
         if: always()
         run: |
@@ -96,7 +104,7 @@ jobs:
             echo '- TypeScript typecheck: ${{ steps.types.outcome }}'
             echo '- TypeScript unit tests + JXA native probe: ${{ steps.probes.outcome }}'
             echo '- Real AnyDoc Node/JXA baseline: ${{ steps.baseline.outcome }}'
-            echo '- JXA single-process singleton MD5 comparison: ${{ steps.singleton.outcome }}'
+            echo '- JXA single-process singleton MD5 comparison: ${{ steps.singleton.outcome }}'\n            echo '- Recursive directory conversion: ${{ steps.directory.outcome }}'
           } >> test_report.md
           cat test_report.md >> "$GITHUB_STEP_SUMMARY"
           cat test_report.md
@@ -138,3 +146,4 @@ jobs:
           test "${{ steps.probes.outcome }}" = success
           test "${{ steps.baseline.outcome }}" = success
           test "${{ steps.singleton.outcome }}" = success
+          test "${{ steps.directory.outcome }}" = success

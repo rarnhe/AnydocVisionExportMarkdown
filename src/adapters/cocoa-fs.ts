@@ -22,7 +22,7 @@ export function createCocoaFilePort(): FilePort {
     if (type === unwrap($.NSFileTypeDirectory)) return "directory";
     if (type === unwrap($.NSFileTypeRegular)) return "file";
     if (type === unwrap($.NSFileTypeSymbolicLink)) return "symlink";
-    return "other";
+    throw new Error("Unrecognized Cocoa file type for " + path + ": " + type + "; keys=" + Object.keys(properties).join(",") + "; expected=" + unwrap($.NSFileTypeDirectory));
   }
   return {
     stat,

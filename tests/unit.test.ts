@@ -54,7 +54,7 @@ test("Markdown validator accepts UTF-8 and rejects short or placeholder content"
   assert.throws(() => validateMarkdownBytes(new TextEncoder().encode("MARKDOWN_OUTPUT_START " + "x".repeat(50))), /Placeholder/);
 });
 test("TS to JXA ports/adapters template files exist", () => {
-  for (const file of ["build.js", "package-lock.json", "src/hosts/node.ts", "src/hosts/jxa.ts", "src/core/engine.ts", "src/core/batch.ts", "src/ports/file-port.ts", "src/adapters/node-fs.ts", "src/adapters/cocoa-fs.ts"]) {
+  for (const file of ["build.js", "package-lock.json", "src/hosts/node.ts", "src/hosts/jxa.ts", "src/core/engine.ts", "src/core/processor.ts", "src/ports/file-port.ts", "src/adapters/node-fs.ts", "src/adapters/cocoa-fs.ts"]) {
     assert.equal(statSync(path.join(ROOT, file)).isFile(), true, file);
   }
 });
@@ -98,7 +98,7 @@ test("CI uses reproducible npm ci with committed lockfile", () => {
 test("production JXA entry and Node host share core but not host APIs", () => {
   const jxa = readFileSync(path.join(ROOT, "src/hosts/jxa.ts"), "utf8");
   const node = readFileSync(path.join(ROOT, "src/hosts/node.ts"), "utf8");
-  const core = readFileSync(path.join(ROOT, "src/core/batch.ts"), "utf8");
+  const core = readFileSync(path.join(ROOT, "src/core/processor.ts"), "utf8");
   assert.match(jxa, /\.\.\/adapters\/cocoa-fs/);
   assert.match(node, /\.\.\/adapters\/node-fs/);
   assert.match(core, /\.\.\/ports\/file-port/);

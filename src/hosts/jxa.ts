@@ -1,5 +1,5 @@
 import { decodeBase64 } from "../shared/base64";
-import { convertBatch } from "../core/batch";
+import { processInputs } from "../core/processor";
 import { createCocoaFilePort } from "../adapters/cocoa-fs";
 
 /** Replaced with package bytes and esbuild-transformed glue by root build.js. */

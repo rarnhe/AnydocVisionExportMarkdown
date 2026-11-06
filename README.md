@@ -96,7 +96,7 @@ GitHub Actions 在 macOS + Node.js 24 上运行 TypeScript 静态检查、JXA �
 
 ```text
 src/
-├── core/         engine.ts（WASM 单例）+ batch.ts（转换编排）
+├── core/         engine.ts（WASM 单例）+ processor.ts（文件与目录统一处理）
 ├── ports/        file-port.ts（文件系统抽象契约）
 ├── adapters/     node-fs.ts + cocoa-fs.ts（宿主实现）
 ├── hosts/        node.ts（TSX 开发入口）+ node-assets.ts（统一 WASM 资产加载）+ jxa.ts（JXA 发布入口）
@@ -114,3 +114,8 @@ src/
 
 
 项目不再使用额外的 `tools/`、`scripts/` 目录。Node 专用 WASM 资产加载位于 `src/hosts/node-assets.ts`，诊断脚本位于 `tests/doctor.cjs`；根目录仅保留构建入口及 npm 配置。
+
+
+## 递归目录模式
+
+`./dist/anydoc-wasm.jxa.js ./tests` 递归扫描 `./tests` 的 PDF（忽略符号链接和其他文件），在同级创建 `./tests_md`，例如 `./tests/chunk_1.pdf` 转换为 `./tests_md/chunk_1.md`；嵌套目录结构原样保留。也支持 `--output-dir ./out ./tests`。扫描、输出冲突预检先于 WASM 初始化；目录模式一次仅接受一个目录；原有单个或多个 PDF 输入兼容。转换失败记录在 `ANYDOC_BATCH_JSON` 的 `failures` 中，并继续处理其余文件。每个进程仍只初始化一次 WASM。

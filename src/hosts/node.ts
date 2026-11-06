@@ -1,4 +1,4 @@
-import { convertBatch } from "../core/batch";
+import { processInputs } from "../core/processor";
 import { loadPackageAssets } from "./node-assets";
 import { createNodeFilePort } from "../adapters/node-fs";
 

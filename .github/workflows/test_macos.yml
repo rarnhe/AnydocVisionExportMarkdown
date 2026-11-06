@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: anydoc-jxa-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   validate:
@@ -33,24 +33,30 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Install lockfile-pinned dependencies
+      - name: Initialize report directory
+        if: always()
+        run: |
+          mkdir -p tests/output
+          printf '# macOS JXA 目录转换测试报告\n\n- GitHub Run: %s\n- GitHub SHA: %s\n- Event: %s\n' \
+            "${{ github.run_id }}" "${{ github.sha }}" "${{ github.event_name }}" > test_report.md
+
+      - name: Install locked dependencies
         id: deps
+        if: always()
         continue-on-error: true
         run: |
           set -o pipefail
-          mkdir -p tests/output
           npm ci 2>&1 | tee tests/output/npm-install.log
 
-      - name: Check JXA-only source layout and Node 24 installation
+      - name: Doctor
         id: doctor
         if: always()
         continue-on-error: true
         run: |
           set -o pipefail
-          node --version
           npm run doctor 2>&1 | tee tests/output/doctor.log
 
-      - name: TypeScript static typecheck (application and tests)
+      - name: TypeScript typecheck
         id: types
         if: always()
         continue-on-error: true
@@ -58,7 +64,7 @@ jobs:
           set -o pipefail
           npm run typecheck 2>&1 | tee tests/output/typecheck.log
 
-      - name: TypeScript unit tests and native JXA capability probe
+      - name: TypeScript unit and JXA host probe
         id: probes
         if: always()
         continue-on-error: true
@@ -66,7 +72,7 @@ jobs:
           set -o pipefail
           npm run test:probes 2>&1 | tee tests/output/probes-runner.log
 
-      - name: Recursive directory conversion Node/JXA parity
+      - name: Real recursive directory conversion Node vs JXA
         id: directory
         if: always()
         continue-on-error: true
@@ -74,8 +80,87 @@ jobs:
           set -o pipefail
           npm run test:directory 2>&1 | tee tests/output/directory-runner.log
 
-      - name: Complete job and summarize dual-track report
+      - name: Always summarize results and failures
         if: always()
         run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          stages = {
+              "npm ci": "${{ steps.deps.outcome }}",
+              "Doctor": "${{ steps.doctor.outcome }}",
+              "TypeScript typecheck": "${{ steps.types.outcome }}",
+              "Unit tests + JXA probe": "${{ steps.probes.outcome }}",
+              "Node/JXA recursive directory SHA256": "${{ steps.directory.outcome }}",
+          }
+          file = Path("test_report.md")
+          if not file.exists():
+              file.write_text("# macOS JXA 目录转换测试报告\n", encoding="utf-8")
+          with file.open("a", encoding="utf-8") as report:
+              report.write("\n## CI 最终阶段状态\n\n")
+              for name, status in stages.items():
+                  report.write(f"- {name}: **{status.upper()}**\n")
+              report.write("\n## 失败日志摘要\n\n")
+              failures = 0
+              for name, path in [
+                  ("npm ci", "npm-install.log"), ("Doctor", "doctor.log"),
+                  ("TypeScript", "typecheck.log"), ("Probes", "probes-runner.log"),
+                  ("Directory", "directory-runner.log")
+              ]:
+                  log = Path("tests/output") / path
+                  if not log.exists():
+                      report.write(f"- {name}: 日志不存在\n")
+                      continue
+                  lines = log.read_text(encoding="utf-8", errors="replace").splitlines()
+                  matching = [line for line in lines if any(token in line.lower() for token in
+                      ("error", "fail", "exception", "ts2", "enoent", "eexist"))]
+                  if matching:
+                      failures += len(matching)
+                      report.write(f"\n### {name}\n\n```text\n")
+                      report.write("\n".join(matching[-12:])[-3000:]+"\n```\n")
+              if not failures and all(s == "success" for s in stages.values()):
+                  report.write("- 无，所有阶段通过。\n")
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          summary.write_text(file.read_text(encoding="utf-8"), encoding="utf-8")
+          PY
+          cat test_report.md
+
+      - name: Upload logs, report, and Markdown artifacts
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: macos-jxa-directory-validation
+          path: |
+            test_report.md
+            tests/output/
+            !tests/output/*.js
+          if-no-files-found: warn
+
+      - name: Commit test_report.md to feature branch, including failed results
+        if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/test/') || startsWith(github.ref, 'refs/heads/migration/')) }}
+        continue-on-error: true
+        env:
+          REPORT_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
           if [ ! -f test_report.md ]; then
-            printf '# JXA 测试报告\n\n- FAIL: test runner did not produce a report.
+            printf '# macOS JXA 报告\n\n- FAIL: missing report\n' > test_report.md
+          fi
+          git add -- test_report.md
+          if git diff --cached --quiet; then
+            echo "Report unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "ci: update directory test_report.md [skip ci]"
+          git push origin "HEAD:refs/heads/${REPORT_BRANCH}"
+
+      - name: Fail job when any required phase failed
+        if: always()
+        run: |
+          test "${{ steps.deps.outcome }}" = success
+          test "${{ steps.doctor.outcome }}" = success
+          test "${{ steps.types.outcome }}" = success
+          test "${{ steps.probes.outcome }}" = success
+          test "${{ steps.directory.outcome }}" = success

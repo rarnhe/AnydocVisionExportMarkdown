@@ -1,16 +1,16 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-06T02:42:40.007Z
-- 系统: ProductName:		macOS; ProductVersion:		26.6.2; BuildVersion:		25G83
-- Node.js: v24.22.1
-- GitHub SHA: 6ae244bbb3fc6c8e97400b94f36590427b85ad9f
-- GitHub Run: 42152021901
+- 测试时间 (UTC): 2026-11-06T02:58:33.418Z
+- 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
+- Node.js: v24.22.2
+- GitHub SHA: 5b6f9d5d6177ac6c75a76479d1f7b9f11a8d5614
+- GitHub Run: 42153612527
 
 ## 测试状态
 
 | 测试 | 结果 | 日志 |
 |---|---|---|
-| Node.js TypeScript 单元测试 | PASS | tests/output/unit-tests.log |
+| Node.js TypeScript 单元测试 | FAIL | tests/output/unit-tests.log |
 | JXA 原生能力探针 | PASS | tests/output/jxa.log |
 
 PASS 表示宿主进程运行且结果结构有效，不代表全部 API 均可使用。
@@ -80,7 +80,7 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 ## 失败项
 
-- 无
+- Node.js TypeScript unit tests failed; see unit-tests.log
 
 完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
 
@@ -111,23 +111,23 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 - 每个进程处理原始 PDF 与同字节副本，断言 WASM 初始化 1 次、转换 2 次。
 - Node TSX、JXA osascript、JXA 可执行文件生成的 Markdown MD5 必须一致。
 - 历史真实 AnyDoc SHA256 基准：2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131
-- 结论：**PASS**
+- 结论：**FAIL**
 
 | 步骤 | 结果 | WASM init | PDF count | bytes | MD5 | SHA256 | 详情 |
 |---|---|---:|---:|---:|---|---|---|
-| build | PASS | - | - | - | - | - | Bundle generated, size=8945427 |
+| build | PASS | - | - | - | - | - | Bundle generated, size=19342905 |
 | node-tsx | PASS | 1 | 2 | 43139 | a81c4262b857e793c8093d8a302ba697 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2 PDFs converted in one process; one WASM initialization |
-| jxa-osascript | PASS | 1 | 2 | 43139 | a81c4262b857e793c8093d8a302ba697 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2 PDFs converted in one process; one WASM initialization |
-| jxa-executable | PASS | 1 | 2 | 43139 | a81c4262b857e793c8093d8a302ba697 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2 PDFs converted in one process; one WASM initialization |
+| jxa-osascript | FAIL | - | - | - | - | - | Error: Exit 1:  /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: Error: Invalid Base64 length (-2700)  |
+| jxa-executable | FAIL | - | - | - | - | - | Error: Exit 1:  /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: Error: Invalid Base64 length (-2700)  |
 
-- 三种运行时 MD5 完全一致：**PASS**
-- 历史 SHA256 基准一致：**PASS**
+- 三种运行时 MD5 完全一致：**FAIL**
+- 历史 SHA256 基准一致：**FAIL**
 - Markdown 与日志保存在 tests/output/ 并上传为 Actions Artifact。
 
 ## CI 最终阶段状态
 - Dependencies: success
 - Checkout / Node 24 doctor: success
-- TypeScript typecheck: success
-- TypeScript unit tests + JXA native probe: success
+- TypeScript typecheck: failure
+- TypeScript unit tests + JXA native probe: failure
 - Real AnyDoc Node/JXA baseline: success
-- JXA single-process singleton MD5 comparison: success
+- JXA single-process singleton MD5 comparison: failure

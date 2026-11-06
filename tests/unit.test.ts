@@ -116,3 +116,19 @@ test("build and TSX development use one TypeScript asset loader", () => {
   assert.doesNotMatch(jxa, /node-assets|node:fs|require\(/);
   assert.equal(statSync(path.join(ROOT, "tests/doctor.cjs")).isFile(), true);
 });
+
+test("recursive directory processor plans nested PDF paths", async () => {
+  const {planConversions} = await import("../src/core/processor");
+  const {createNodeFilePort} = await import("../src/adapters/node-fs");
+  const {mkdtempSync,mkdirSync,writeFileSync,rmSync} = await import("node:fs");
+  const temp=mkdtempSync(path.join(TESTS,"temp-dir-"));
+  try {
+    mkdirSync(path.join(temp,"nested"),{recursive:true});
+    writeFileSync(path.join(temp,"A.pdf"),"pdf");
+    writeFileSync(path.join(temp,"nested","B.PDF"),"pdf");
+    writeFileSync(path.join(temp,"nested","skip.txt"),"skip");
+    const plan=planConversions([temp],createNodeFilePort());
+    assert.deepEqual(plan.map(x=>x.output),[temp+"_md/A.md",temp+"_md/nested/B.md"]);
+    assert.throws(()=>planConversions([temp,path.join(temp,"A.pdf")],createNodeFilePort()),/exactly one directory/);
+  } finally {rmSync(temp,{recursive:true,force:true});}
+});

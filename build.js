@@ -12,21 +12,7 @@ const path = require("node:path");
 const esbuild = require("esbuild");
 
 const root = __dirname;
-const pkgDir = path.dirname(require.resolve("@firecrawl/anydoc-wasm"));
-const wasmPath = path.join(pkgDir, "anydoc_wasm_bg.wasm");
-const gluePath = ["anydoc_wasm.js", "anydoc_wasm_bg.js"]
-  .map(name => path.join(pkgDir, name)).find(fs.existsSync);
-if (!gluePath) throw new Error("AnyDoc wasm-bindgen glue not found");
-const wasmBytes = fs.readFileSync(wasmPath);
-if (wasmBytes.subarray(0, 4).toString("hex") !== "0061736d") {
-  throw new Error("Unexpected WASM magic");
-}
-const glueCode = esbuild.transformSync(fs.readFileSync(gluePath, "utf8"), {
-  loader: "js",
-  target: "es2020",
-  format: "iife",
-  globalName: "WasmGlue"
-}).code;
+const {wasmBytes, glueCode} = require("./tools/wasm-assets.cjs").loadPackageAssets();
 
 const outFile = path.join(root, "dist", "anydoc-wasm.jxa.js");
 fs.mkdirSync(path.dirname(outFile), {recursive: true});

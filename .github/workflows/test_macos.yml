@@ -82,47 +82,14 @@ jobs:
 
       - name: Always summarize results and failures
         if: always()
+        env:
+          STAGE_DEPS: ${{ steps.deps.outcome }}
+          STAGE_DOCTOR: ${{ steps.doctor.outcome }}
+          STAGE_TYPES: ${{ steps.types.outcome }}
+          STAGE_PROBES: ${{ steps.probes.outcome }}
+          STAGE_DIRECTORY: ${{ steps.directory.outcome }}
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import os
-          stages = {
-              "npm ci": "${{ steps.deps.outcome }}",
-              "Doctor": "${{ steps.doctor.outcome }}",
-              "TypeScript typecheck": "${{ steps.types.outcome }}",
-              "Unit tests + JXA probe": "${{ steps.probes.outcome }}",
-              "Node/JXA recursive directory SHA256": "${{ steps.directory.outcome }}",
-          }
-          file = Path("test_report.md")
-          if not file.exists():
-              file.write_text("# macOS JXA 目录转换测试报告\n", encoding="utf-8")
-          with file.open("a", encoding="utf-8") as report:
-              report.write("\n## CI 最终阶段状态\n\n")
-              for name, status in stages.items():
-                  report.write(f"- {name}: **{status.upper()}**\n")
-              report.write("\n## 失败日志摘要\n\n")
-              failures = 0
-              for name, path in [
-                  ("npm ci", "npm-install.log"), ("Doctor", "doctor.log"),
-                  ("TypeScript", "typecheck.log"), ("Probes", "probes-runner.log"),
-                  ("Directory", "directory-runner.log")
-              ]:
-                  log = Path("tests/output") / path
-                  if not log.exists():
-                      report.write(f"- {name}: 日志不存在\n")
-                      continue
-                  lines = log.read_text(encoding="utf-8", errors="replace").splitlines()
-                  matching = [line for line in lines if any(token in line.lower() for token in
-                      ("error", "fail", "exception", "ts2", "enoent", "eexist"))]
-                  if matching:
-                      failures += len(matching)
-                      report.write(f"\n### {name}\n\n```text\n")
-                      report.write("\n".join(matching[-12:])[-3000:]+"\n```\n")
-              if not failures and all(s == "success" for s in stages.values()):
-                  report.write("- 无，所有阶段通过。\n")
-          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
-          summary.write_text(file.read_text(encoding="utf-8"), encoding="utf-8")
-          PY
+          node tests/summarize-ci.cjs
           cat test_report.md
 
       - name: Upload logs, report, and Markdown artifacts

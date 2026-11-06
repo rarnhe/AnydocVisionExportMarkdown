@@ -144,3 +144,10 @@ test("existing Markdown is skipped without WASM initialization or overwrite", as
     assert.throws(()=>port.writeText(tasks[0].output,"OVERWRITE"),/EEXIST/);
   } finally {rmSync(dir,{recursive:true,force:true});rmSync(target,{recursive:true,force:true});}
 });
+
+test("report aggregation is JavaScript-only and always runs", () => {
+  const ci=readFileSync(path.join(ROOT,".github/workflows/test_macos.yml"),"utf8");
+  assert.match(ci,/node tests\/summarize-ci\.cjs/);
+  assert.doesNotMatch(ci,/python3/);
+  assert.match(readFileSync(path.join(ROOT,"tests/summarize-ci.cjs"),"utf8"),/STAGE_DIRECTORY/);
+});

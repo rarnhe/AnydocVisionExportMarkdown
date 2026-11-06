@@ -120,3 +120,5 @@ CI 的工作目录位于 `tests/output/`，原始输入 PDF fixture 不被修改
 ## 实现范围说明
 
 本项目仅针对 macOS JXA + Foundation 交付。Node/tsx 是构建与正确性对照环境，而非额外的正式发布程序。没有 JSC 子进程、独立 wasm 文件或额外 npm 框架。
+
+CI 失败摘要由纯 JavaScript 的 `tests/summarize-ci.cjs` 汇总，不依赖 npm 安装成功，也不使用 Python。

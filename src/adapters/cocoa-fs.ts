@@ -18,6 +18,7 @@ export function createCocoaFilePort(): FilePort {
     if (!attrs) return "missing";
     // JXA bridges NSDictionary into a plain JS object; objectForKey() may not exist.
     const properties = ObjC.unwrap(attrs);
+    if (properties == null) return "missing";
     const nativeType = properties.NSFileType ?? properties[unwrap($.NSFileType)];
     const type = nativeType ? unwrap(nativeType) : "";
     if (type === unwrap($.NSFileTypeDirectory)) return "directory";

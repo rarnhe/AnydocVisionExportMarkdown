@@ -15,7 +15,7 @@ export function createNodeFilePort(): FilePort {
       }));
     },
     readBytes(path) { return new Uint8Array(fs.readFileSync(path)); },
-    writeText(path, content) { fs.writeFileSync(path, content, "utf8"); },
+    writeText(path, content) { fs.writeFileSync(path, content, {encoding: "utf8", flag: "wx"}); },
     ensureDirectory(path) { fs.mkdirSync(path, {recursive: true}); }
   };
 }

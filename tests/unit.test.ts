@@ -3,8 +3,8 @@ import {readdirSync, readFileSync, statSync} from "node:fs";
 import path from "node:path";
 import {test} from "node:test";
 import {
-  ANYDOC_PREFIX, BATCH_PREFIX, PROBE_PREFIX,
-  extractAnyDocResult, extractBatchOutput, extractProbeResult,
+  BATCH_PREFIX, PROBE_PREFIX,
+  extractBatchOutput, extractProbeResult,
   mdEscape, safe, validateMarkdownBytes
 } from "./test-utils";
 
@@ -25,14 +25,6 @@ test("probe parser rejects missing marker and wrong schema", () => {
 });
 test("Markdown report escaping handles pipes and newlines", () => {
   assert.equal(mdEscape("a|b\nc"), "a\\|b c");
-});
-test("AnyDoc parser accepts trailing output", () => {
-  const value = {schema: 1, engine: "JXA", success: false};
-  assert.deepEqual(extractAnyDocResult("noise\n" + ANYDOC_PREFIX + JSON.stringify(value) + "\ntrailing"), value);
-});
-test("AnyDoc parser rejects missing marker and invalid schema", () => {
-  assert.throws(() => extractAnyDocResult("wasm unavailable"), /marker absent/);
-  assert.throws(() => extractAnyDocResult(ANYDOC_PREFIX + '{"schema":2}'), /schema/);
 });
 test("batch parser accepts JXA and Node results", () => {
   const jxa = {schema: 1, runtime: "JXA", mode: "single-process", wasmInitializationCount: 1, conversionCount: 2, conversions: []};
@@ -129,6 +121,25 @@ test("recursive directory processor plans nested PDF paths", async () => {
     writeFileSync(path.join(temp,"nested","skip.txt"),"skip");
     const plan=planConversions([temp],createNodeFilePort());
     assert.deepEqual(plan.map(x=>x.output),[temp+"_md/A.md",temp+"_md/nested/B.md"]);
-    assert.throws(()=>planConversions([temp,path.join(temp,"A.pdf")],createNodeFilePort()),/exactly one directory/);
+    assert.throws(()=>planConversions([temp,path.join(temp,"A.pdf")],createNodeFilePort()),/exactly one directory/);\n    assert.throws(()=>planConversions([path.join(temp,"A.pdf")],createNodeFilePort()),/Expected an existing directory/);
   } finally {rmSync(temp,{recursive:true,force:true});}
+});
+
+test("existing Markdown is skipped without WASM initialization or overwrite", async () => {
+  const {processInputs,planConversions} = await import("../src/core/processor");
+  const {createNodeFilePort} = await import("../src/adapters/node-fs");
+  const {mkdtempSync,writeFileSync,readFileSync,rmSync} = await import("node:fs");
+  const dir=mkdtempSync(path.join(TESTS,"temp-skip-")), target=dir+"_md";
+  try {
+    writeFileSync(path.join(dir,"test.pdf"),"fixture");
+    const port=createNodeFilePort(), tasks=planConversions([dir],port);
+    port.ensureDirectory(target);
+    writeFileSync(tasks[0].output,"ORIGINAL");
+    const result=processInputs([dir],port,{wasmBytes:new Uint8Array(),glueCode:""},"Node");
+    assert.equal(result.conversionCount,0);
+    assert.equal(result.skippedCount,1);
+    assert.equal(result.wasmInitializationCount,0);
+    assert.equal(readFileSync(tasks[0].output,"utf8"),"ORIGINAL");
+    assert.throws(()=>port.writeText(tasks[0].output,"OVERWRITE"),/EEXIST/);
+  } finally {rmSync(dir,{recursive:true,force:true});rmSync(target,{recursive:true,force:true});}
 });

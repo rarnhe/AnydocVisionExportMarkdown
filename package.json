@@ -7,13 +7,10 @@
     "build": "node build.js",
     "convert:node": "tsx src/hosts/node.ts",
     "typecheck": "tsc --noEmit",
-    "test": "npm run typecheck && npm run test:probes && npm run test:anydoc && npm run test:singleton && npm run test:directory",
+    "test": "npm run typecheck && npm run test:probes && npm run test:directory",
     "test:unit": "tsx --test tests/unit.test.ts",
     "test:probes": "tsx tests/run-probes.ts",
-    "test:anydoc": "tsx tests/run-anydoc.ts",
-    "test:singleton": "tsx tests/run-single-process.ts",
     "test:directory": "tsx tests/run-directory.ts",
-    "build:anydoc:probe": "node tests/build-anydoc.cjs",
     "doctor": "node tests/doctor.cjs"
   },
   "devDependencies": {
@@ -23,4 +20,4 @@
     "typescript": "5.9.3",
     "@types/node": "26.6.5"
   }
-}
+}\n

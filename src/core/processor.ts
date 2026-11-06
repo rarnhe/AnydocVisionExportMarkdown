@@ -12,27 +12,26 @@ export interface ProcessingResult {
   mode: "single-process";
   wasmInitializationCount: number;
   conversionCount: number;
-  conversions: ConversionResult[];
+  conversions: ConversionResult[];\n  skippedCount: number;\n  skipped: Array<{input: string; output: string}>;
   failureCount?: number;
   failures?: Array<{input: string; message: string}>;
 }
 interface Task { input: string; output: string; }
-export function parseArguments(argv: string[]): {outputDir?: string; inputPaths: string[]} {
+export function parseArguments(argv: string[]): {outputDir?: string; inputDir: string} {
   let outputDir: string | undefined;
-  const inputPaths: string[] = [];
+  const inputs: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const arg = String(argv[i]);
     if (arg === "--") continue;
     if (arg === "--output-dir") {
       if (i + 1 >= argv.length) throw new Error("--output-dir requires a path");
-      outputDir = String(argv[++i]);
-      continue;
+      outputDir = String(argv[++i]); continue;
     }
     if (arg.startsWith("--")) throw new Error("Unknown option: " + arg);
-    inputPaths.push(arg);
+    inputs.push(arg);
   }
-  if (!inputPaths.length) throw new Error("Usage: <script> [--output-dir DIR] FILE.pdf [FILE2.pdf ...] | DIRECTORY");
-  return {outputDir, inputPaths};
+  if (inputs.length !== 1) throw new Error("Usage: <script> [--output-dir DIR] DIRECTORY (exactly one directory)");
+  return {outputDir, inputDir: inputs[0]};
 }
 function normalized(path: string): string {
   const raw = path.replace(/\\/g, "/");
@@ -78,27 +77,13 @@ function discover(root: string, port: FilePort): string[] {
   return found;
 }
 export function planConversions(argv: string[], port: FilePort): Task[] {
-  const {outputDir, inputPaths} = parseArguments(argv);
-  const roots = inputPaths.filter(p => port.stat(p) === "directory");
-  if (roots.length && (inputPaths.length !== 1 || roots.length !== 1))
-    throw new Error("Directory mode accepts exactly one directory; do not mix directories and PDF paths");
-  const tasks: Task[] = [];
-  if (roots.length) {
-    const root = normalized(roots[0]), target = normalized(outputDir || outputRoot(root));
-    if (target === root || target.startsWith(root + "/")) throw new Error("Output must be outside the input directory");
-    const pdfs = discover(root, port);
-    for (const input of pdfs) {
-      const relative = input.slice(root.length).replace(/^\//, "");
-      tasks.push({input, output: join(target, markdown(relative))});
-    }
-  } else {
-    for (const input of inputPaths) {
-      if (port.stat(input) !== "file") throw new Error("Missing or unsupported input file: " + input);
-      if (!/\.pdf$/i.test(input)) throw new Error("Expected .pdf path: " + input);
-      const dest = outputDir ? join(outputDir, basename(markdown(input))) : markdown(input);
-      tasks.push({input, output: dest});
-    }
-  }
+  const {outputDir, inputDir} = parseArguments(argv);
+  if (port.stat(inputDir) !== "directory") throw new Error("Expected an existing directory: " + inputDir);
+  const root = normalized(inputDir), target = normalized(outputDir || outputRoot(root));
+  if (target === root || target.startsWith(root + "/")) throw new Error("Output must be outside input directory");
+  const tasks = discover(root, port).map(input => ({
+    input, output: join(target, markdown(input.slice(root.length).replace(/^\\//, "")))
+  }));
   const seen = new Set<string>();
   for (const task of tasks) {
     const key = normalized(task.output).toLowerCase();
@@ -111,7 +96,7 @@ export function processInputs(
   argv: string[], port: FilePort, assets: AnyDocAssets, runtime: "Node" | "JXA"
 ): ProcessingResult {
   const tasks = planConversions(argv, port);
-  const conversions: ConversionResult[] = [];
+  const conversions: ConversionResult[] = [];\n  const skipped: Array<{input: string; output: string}> = [];
   const failures: Array<{input: string; message: string}> = [];
   if (tasks.length) {
     const engine = getAnyDocSingleton(assets);
@@ -129,7 +114,7 @@ export function processInputs(
   return {
     schema: 1, runtime, mode: "single-process",
     wasmInitializationCount: getWasmInitializationCount(),
-    conversionCount: conversions.length, conversions,
+    conversionCount: conversions.length, conversions,\n    skippedCount: skipped.length, skipped,
     failureCount: failures.length, failures
   };
 }

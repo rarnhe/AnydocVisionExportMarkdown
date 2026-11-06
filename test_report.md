@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-06T08:22:12.426Z
+- 测试时间 (UTC): 2026-11-06T08:23:58.872Z
 - 系统: ProductName:		macOS; ProductVersion:		26.6.2; BuildVersion:		25G83
 - Node.js: v24.22.1
-- GitHub SHA: cb03f9ca52b174b53b065dc673968b6eef392da8
-- GitHub Run: 42187153866
+- GitHub SHA: 379b017e77d338a6e1bc512264c4e38481cf3462
+- GitHub Run: 42187364832
 
 ## 测试状态
 
@@ -86,7 +86,7 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 ## 真实目录镜像转换
 
-- **FAIL**：FAIL: Error: jxa exit=1: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: TypeError: attrs.objectForKey is not a function. (In 'attrs.objectForKey($.NSFileType)', 'attrs.objectForKey' is undefined) (-2700) 
+- **FAIL**：FAIL: Error: jxa exit=1: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: Error: Expected an existing directory, not an individual PDF: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/directory-fixture (-2700) 
 - 详细日志：tests/output/directory-*.log
 
 ## CI 最终阶段状态
@@ -109,5 +109,5 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 ### Directory
 
 ```text
-FAIL: Error: jxa exit=1: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: TypeError: attrs.objectForKey is not a function. (In 'attrs.objectForKey($.NSFileType)', 'attrs.objectForKey' is undefined) (-2700) 
+FAIL: Error: jxa exit=1: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: Error: Expected an existing directory, not an individual PDF: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/directory-fixture (-2700) 
 ```

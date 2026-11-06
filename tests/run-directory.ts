@@ -34,6 +34,7 @@ function main() {
     {name:"executable",cmd:bundle,args:[],runtime:"JXA"}
   ];
   const hashes: string[] = [];
+  const golden="2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131";
   for (const mode of modes) {
     rmSync(target,{recursive:true,force:true});
     const batch = run(mode.name,mode.cmd,[...mode.args,input]);
@@ -44,7 +45,10 @@ function main() {
     const a = path.join(target,"chunk_1.md"), b = path.join(target,"nested/deeper/copy.md");
     if (!existsSync(a) || !existsSync(b) || existsSync(path.join(target,"nested/ignore.md"))) throw Error("Output layout mismatch");
     const ha=hash(a),hb=hash(b);
-    if (ha!==hb) throw Error("Different hashes for same PDF");
+    if (ha!==hb || ha!==golden) throw Error("Same PDF output must match historical SHA256");
+    const again=run(mode.name+"-skip",mode.cmd,[...mode.args,input]);
+    if (again.conversionCount!==0 || again.skippedCount!==2 || again.wasmInitializationCount!==0) throw Error("Rerun must skip all Markdown without initializing WASM");
+    if (hash(a)!==ha || hash(b)!==hb) throw Error("Skip changed existing Markdown");
     hashes.push(ha);
   }
   if (new Set(hashes).size !== 1) throw Error("Node/JXA recursive output differs");

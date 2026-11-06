@@ -5,10 +5,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const required = [
-  "build.js", "package.json", "tsconfig.json",
-  "src/node/cli.ts", "src/node/node-fs.ts", "src/node/package-assets.ts",
-  "src/jxa/entry.ts", "src/jxa/cocoa-fs.ts",
-  "src/core/anydoc-engine.ts", "src/core/batch.ts", "src/shared/base64.ts",
+  "build.js", "package.json", "package-lock.json", "tsconfig.json",
+  "src/hosts/node.ts", "src/hosts/node-assets.ts", "src/hosts/jxa.ts",
+  "src/adapters/node-fs.ts", "src/adapters/cocoa-fs.ts",
+  "src/core/engine.ts", "src/core/batch.ts", "src/ports/file-port.ts", "src/shared/base64.ts",
   "tests/chunk_1.pdf", "tests/unit.test.ts", "tests/test-utils.ts",
   "tests/probe.js", "tests/run-probes.ts", "tests/run-anydoc.ts", "tests/run-single-process.ts"
 ];

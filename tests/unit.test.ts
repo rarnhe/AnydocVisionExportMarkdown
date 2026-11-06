@@ -53,8 +53,8 @@ test("Markdown validator accepts UTF-8 and rejects short or placeholder content"
   assert.throws(() => validateMarkdownBytes(new TextEncoder().encode("short")), /too short/);
   assert.throws(() => validateMarkdownBytes(new TextEncoder().encode("MARKDOWN_OUTPUT_START " + "x".repeat(50))), /Placeholder/);
 });
-test("PR #3 build and CLI source files exist", () => {
-  for (const file of ["build.js", "src/node/cli.ts", "src/jxa/entry.ts", "src/core/anydoc-engine.ts", "src/jxa/cocoa-fs.ts"]) {
+test("TS to JXA ports/adapters template files exist", () => {
+  for (const file of ["build.js", "package-lock.json", "src/hosts/node.ts", "src/hosts/jxa.ts", "src/core/engine.ts", "src/core/batch.ts", "src/ports/file-port.ts", "src/adapters/node-fs.ts", "src/adapters/cocoa-fs.ts"]) {
     assert.equal(statSync(path.join(ROOT, file)).isFile(), true, file);
   }
 });
@@ -83,4 +83,24 @@ test("package build and doctor scripts are declared", () => {
   assert.match(source, /anydoc-wasm\.jxa\.js/);
   assert.equal(pkg.scripts.build, "node build.js");
   assert.equal(pkg.scripts.doctor, "node scripts/doctor.cjs");
+});
+
+
+test("CI uses reproducible npm ci with committed lockfile", () => {
+  const workflow = readFileSync(path.join(ROOT, ".github/workflows/test_macos.yml"), "utf8");
+  const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  const lock = JSON.parse(readFileSync(path.join(ROOT, "package-lock.json"), "utf8"));
+  assert.match(workflow, /npm ci/);
+  assert.equal(lock.lockfileVersion, 3);
+  assert.deepEqual(lock.packages[""].devDependencies, pkg.devDependencies);
+});
+
+test("production JXA entry and Node host share core but not host APIs", () => {
+  const jxa = readFileSync(path.join(ROOT, "src/hosts/jxa.ts"), "utf8");
+  const node = readFileSync(path.join(ROOT, "src/hosts/node.ts"), "utf8");
+  const core = readFileSync(path.join(ROOT, "src/core/batch.ts"), "utf8");
+  assert.match(jxa, /\.\.\/adapters\/cocoa-fs/);
+  assert.match(node, /\.\.\/adapters\/node-fs/);
+  assert.match(core, /\.\.\/ports\/file-port/);
+  assert.doesNotMatch(core, /node:fs|ObjC|\.\/cocoa-fs/);
 });

@@ -1,5 +1,5 @@
 import { decodeBase64 } from "../shared/base64";
-import type { FilePort } from "../core/batch";
+import type { FilePort } from "../ports/file-port";
 
 declare const ObjC: any;
 declare const $: any;

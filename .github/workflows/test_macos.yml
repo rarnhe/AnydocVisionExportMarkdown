@@ -33,13 +33,13 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Install pinned dependencies
+      - name: Install lockfile-pinned dependencies
         id: deps
         continue-on-error: true
         run: |
           set -o pipefail
           mkdir -p tests/output
-          npm install --no-package-lock 2>&1 | tee tests/output/npm-install.log
+          npm ci 2>&1 | tee tests/output/npm-install.log
 
       - name: Check JXA-only source layout and Node 24 installation
         id: doctor

@@ -31,7 +31,7 @@ const glueCode = esbuild.transformSync(fs.readFileSync(gluePath, "utf8"), {
 const outFile = path.join(root, "dist", "anydoc-wasm.jxa.js");
 fs.mkdirSync(path.dirname(outFile), {recursive: true});
 esbuild.buildSync({
-  entryPoints: [path.join(root, "src", "jxa", "entry.ts")],
+  entryPoints: [path.join(root, "src", "hosts", "jxa.ts")],
   bundle: true,
   platform: "neutral",
   format: "iife",

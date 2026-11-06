@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as esbuild from "esbuild";
-import type { AnyDocAssets } from "../core/anydoc-engine";
+import type { AnyDocAssets } from "../core/engine";
 
 /** The same assets/discovery/transform policy used by root build.js. */
 export function loadPackageAssets(): AnyDocAssets {

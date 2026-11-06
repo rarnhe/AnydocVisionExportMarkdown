@@ -5,7 +5,7 @@
   "description": "macOS PDF to Markdown using JXA, Objective-C Foundation and a singleton WebAssembly engine",
   "scripts": {
     "build": "node build.js",
-    "convert:node": "tsx src/node/cli.ts",
+    "convert:node": "tsx src/hosts/node.ts",
     "typecheck": "tsc --noEmit",
     "test": "npm run typecheck && npm run test:probes && npm run test:anydoc && npm run test:singleton",
     "test:unit": "tsx --test tests/unit.test.ts",
@@ -20,6 +20,6 @@
     "esbuild": "0.28.2",
     "tsx": "4.23.15",
     "typescript": "5.9.3",
-    "@types/node": "22.18.9"
+    "@types/node": "26.6.5"
   }
 }

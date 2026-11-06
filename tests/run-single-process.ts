@@ -35,7 +35,7 @@ function main(){
  const built=build.status===0&&existsSync(bundle)&&statSync(bundle).size>100000;
  rows.push({name:"build",pass:built,reason:built?"Bundle generated, size="+statSync(bundle).size:"Build failed: "+safe(build.output.slice(-500))});
  const modes=[
-  {name:"node-tsx",cmd:"npx",args:["--no-install","tsx","src/node/cli.ts"],runtime:"Node"},
+  {name:"node-tsx",cmd:"npx",args:["--no-install","tsx","src/hosts/node.ts"],runtime:"Node"},
   {name:"jxa-osascript",cmd:"osascript",args:["-l","JavaScript",bundle],runtime:"JXA"},
   {name:"jxa-executable",cmd:bundle,args:[],runtime:"JXA"}
  ];

@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const required = [
-  "build.js", "package.json", "package-lock.json", "tsconfig.json",
+  "build.js", "tools/wasm-assets.cjs", "package.json", "package-lock.json", "tsconfig.json",
   "src/hosts/node.ts", "src/hosts/node-assets.ts", "src/hosts/jxa.ts",
   "src/adapters/node-fs.ts", "src/adapters/cocoa-fs.ts",
   "src/core/engine.ts", "src/core/batch.ts", "src/ports/file-port.ts", "src/shared/base64.ts",

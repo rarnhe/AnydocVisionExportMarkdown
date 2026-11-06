@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-06T08:23:58.872Z
+- 测试时间 (UTC): 2026-11-06T08:25:31.467Z
 - 系统: ProductName:		macOS; ProductVersion:		26.6.2; BuildVersion:		25G83
 - Node.js: v24.22.1
-- GitHub SHA: 379b017e77d338a6e1bc512264c4e38481cf3462
-- GitHub Run: 42187364832
+- GitHub SHA: d77caf2338c34c67191cb59fe03b925c0a85544a
+- GitHub Run: 42187546126
 
 ## 测试状态
 
@@ -86,7 +86,7 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 ## 真实目录镜像转换
 
-- **FAIL**：FAIL: Error: jxa exit=1: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: Error: Expected an existing directory, not an individual PDF: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/directory-fixture (-2700) 
+- **FAIL**：FAIL: Error: jxa exit=1: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: Error: Unrecognized Cocoa file type for /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/directory-fixture: [id __NSCFConstantString]; keys=NSFileOwnerAccountID,NSFileSystemFileNumber,NSFileExtensionHidden,NSFileSystemNumber,NSFileSize,NSFileProtectionKey,NSFilePosixPermissions,NSFileGroupOwnerAccountID,NSFileOwnerAccountName,NSFileAppendOnly,NSFileType,NSFileCreationDate,NSFileGroupOwnerAccountName,NSFileReferenceCount,NSFileModificationDate,NSFileImmutable; expected=NSFileTypeDirectory (-2700) 
 - 详细日志：tests/output/directory-*.log
 
 ## CI 最终阶段状态
@@ -109,5 +109,5 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 ### Directory
 
 ```text
-FAIL: Error: jxa exit=1: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: Error: Expected an existing directory, not an individual PDF: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/directory-fixture (-2700) 
+FAIL: Error: jxa exit=1: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: Error: Unrecognized Cocoa file type for /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/directory-fixture: [id __NSCFConstantString]; keys=NSFileOwnerAccountID,NSFileSystemFileNumber,NSFileExtensionHidden,NSFileSystemNumber,NSFileSize,NSFileProtectionKey,NSFilePosixPermissions,NSFileGroupOwnerAccountID,NSFileOwnerAccountName,NSFileAppendOnly,NSFileType,NSFileCreationDate,NSFileGroupOwnerAccountName,NSFileReferenceCount,NSFileModificationDate,NSFileImmutable; expected=NSFileTypeDirectory (-2700) 
 ```

@@ -12,7 +12,9 @@ export interface ProcessingResult {
   mode: "single-process";
   wasmInitializationCount: number;
   conversionCount: number;
-  conversions: ConversionResult[];\n  skippedCount: number;\n  skipped: Array<{input: string; output: string}>;
+  conversions: ConversionResult[];
+  skippedCount: number;
+  skipped: Array<{input: string; output: string}>;
   failureCount?: number;
   failures?: Array<{input: string; message: string}>;
 }
@@ -82,7 +84,7 @@ export function planConversions(argv: string[], port: FilePort): Task[] {
   const root = normalized(inputDir), target = normalized(outputDir || outputRoot(root));
   if (target === root || target.startsWith(root + "/")) throw new Error("Output must be outside input directory");
   const tasks = discover(root, port).map(input => ({
-    input, output: join(target, markdown(input.slice(root.length).replace(/^\\//, "")))
+    input, output: join(target, markdown(input.slice(root.length + (input.charAt(root.length) === "/" ? 1 : 0))))
   }));
   const seen = new Set<string>();
   for (const task of tasks) {

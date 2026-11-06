@@ -16,7 +16,9 @@ export function createCocoaFilePort(): FilePort {
   function stat(path: string): EntryKind | "missing" {
     const attrs = manager.attributesOfItemAtPathError(ns(path), null);
     if (!attrs) return "missing";
-    const type = unwrap(attrs.objectForKey($.NSFileType));
+    // JXA bridges NSDictionary into a plain JS object; objectForKey() may not exist.
+    const properties = ObjC.unwrap(attrs);
+    const type = String(properties.NSFileType ?? properties[unwrap($.NSFileType)] ?? "");
     if (type === unwrap($.NSFileTypeDirectory)) return "directory";
     if (type === unwrap($.NSFileTypeRegular)) return "file";
     if (type === unwrap($.NSFileTypeSymbolicLink)) return "symlink";
@@ -28,8 +30,11 @@ export function createCocoaFilePort(): FilePort {
       const entries = manager.contentsOfDirectoryAtPathError(ns(path), null);
       if (!entries) throw new Error("Cannot enumerate directory: " + path);
       const found: Array<{name: string; kind: EntryKind}> = [];
-      for (let index = 0; index < Number(entries.count); index++) {
-        const name = unwrap(entries.objectAtIndex(index));
+      // NSArray may likewise be bridged to a native JavaScript Array.
+      const names: unknown = ObjC.unwrap(entries);
+      if (!Array.isArray(names)) throw new Error("Unexpected Foundation directory listing: " + path);
+      for (const item of names) {
+        const name = String(item);
         found.push({name, kind: stat(path.replace(/\/+$/, "") + "/" + name) as EntryKind});
       }
       return found;

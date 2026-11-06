@@ -27,6 +27,8 @@ function main() {
   writeFileSync(path.join(input, "nested/ignore.txt"), "ignored");
   const target = input + "_md";
   rmSync(target, {recursive:true, force:true});
+  const build = spawnSync(process.execPath, ["build.js"], {cwd:root,encoding:"utf8",timeout:180000});
+  if (build.status !== 0) throw Error("JXA bundle build failed: "+String(build.stderr));
   const bundle = path.join(root, "dist/anydoc-wasm.jxa.js");
   const modes = [
     {name:"node", cmd:"npx", args:["--no-install","tsx","src/hosts/node.ts"],runtime:"Node"},

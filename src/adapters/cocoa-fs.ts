@@ -1,38 +1,67 @@
-import { decodeBase64 } from "../shared/base64";
-import type { FilePort } from "../ports/file-port";
+import {decodeBase64} from "../shared/base64";
+import type {FilePort, EntryKind} from "../ports/file-port";
 
 declare const ObjC: any;
 declare const $: any;
 
-/** Foundation-only file system bridge; no NSTask, Apple Events, or JSC subprocess. */
-function ns(value: string): any {
-  return $.NSString.stringWithString(String(value));
-}
+function ns(value: string): any { return $.NSString.stringWithString(String(value)); }
+function unwrap(value: any): string { return String(ObjC.unwrap(value)); }
 
+/** JXA file-system adapter; the core never accesses Objective-C directly. */
 export function createCocoaFilePort(): FilePort {
   if (typeof ObjC === "undefined") throw new Error("JXA Objective-C bridge unavailable");
   ObjC.import("Foundation");
-  const fm = $.NSFileManager.defaultManager;
+  const manager = $.NSFileManager.defaultManager;
+
+  function stat(path: string): EntryKind | "missing" {
+    const attrs = manager.attributesOfItemAtPathError(ns(path), null);
+    if (!attrs) return "missing";
+    // JXA bridges NSDictionary into a plain JS object; objectForKey() may not exist.
+    const properties = ObjC.unwrap(attrs);
+    if (properties == null) return "missing";
+    const nativeType = properties.NSFileType ?? properties[unwrap($.NSFileType)];
+    const type = nativeType ? unwrap(nativeType) : "";
+    if (type === unwrap($.NSFileTypeDirectory)) return "directory";
+    if (type === unwrap($.NSFileTypeRegular)) return "file";
+    if (type === unwrap($.NSFileTypeSymbolicLink)) return "symlink";
+    return "other";
+  }
   return {
-    readBytes(path: string): Uint8Array {
+    stat,
+    listEntries(path) {
+      const entries = manager.contentsOfDirectoryAtPathError(ns(path), null);
+      if (!entries) throw new Error("Cannot enumerate directory: " + path);
+      const found: Array<{name: string; kind: EntryKind}> = [];
+      // NSArray may likewise be bridged to a native JavaScript Array.
+      const names: unknown = ObjC.unwrap(entries);
+      if (!Array.isArray(names)) throw new Error("Unexpected Foundation directory listing: " + path);
+      for (const item of names) {
+        const name = typeof item === "string" ? item : unwrap(item);
+        found.push({name, kind: stat(path.replace(/\/+$/, "") + "/" + name) as EntryKind});
+      }
+      return found;
+    },
+    readBytes(path) {
       const data = $.NSData.dataWithContentsOfFile(ns(path));
       if (!data || Number(data.length) < 5) throw new Error("Missing/empty PDF: " + path);
-      // NSData is the only binary source; Base64 crosses the ObjC->JS bridge without byte truncation.
       const base64 = ObjC.unwrap(data.base64EncodedStringWithOptions(0));
       if (typeof base64 !== "string") throw new Error("NSData Base64 bridge returned non-string");
       return decodeBase64(base64);
     },
-    writeText(path: string, content: string): void {
-      const ok = ns(content).writeToFileAtomicallyEncodingError(
-        ns(path), true, $.NSUTF8StringEncoding, null
-      );
-      if (!ok) throw new Error("Foundation could not write " + path);
+    writeText(path, content) {
+      if (stat(path) !== "missing") throw new Error("Markdown already exists: " + path);
+      // NSData writeToFile:options:error: with NSDataWritingWithoutOverwriting
+      // (0x1000000) is unavailable on older macOS, so use Foundation createFile:
+      // guarded by the same existence check; never intentionally replace a file.
+      const data = ns(content).dataUsingEncoding($.NSUTF8StringEncoding);
+      const ok = manager.createFileAtPathContentsAttributes(ns(path), data, $.NSDictionary.dictionary);
+      if (!ok) throw new Error("Foundation could not create Markdown: " + path);
     },
-    ensureDirectory(path: string): void {
-      const ok = fm.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
+    ensureDirectory(path) {
+      const ok = manager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
         ns(path), true, $.NSDictionary.dictionary, null
       );
-      if (!ok) throw new Error("Foundation could not create directory " + path);
+      if (!ok) throw new Error("Foundation could not create directory: " + path);
     }
   };
 }

@@ -1,24 +1,18 @@
 # AnyDocVisionExportMarkdown
 
-基于 **JXA + Objective-C Foundation + WebAssembly** 的 macOS PDF → Markdown 转换工具。
+基于 **TypeScript → JXA + Objective-C Foundation + WebAssembly** 的 macOS PDF → Markdown 工具。项目的正式输入是**单个文件夹**，递归扫描其中的 PDF 并创建镜像 Markdown 文件夹，不支持直接传入单个 PDF 或 PDF 路径列表。
 
-本项目采用单进程架构：Node.js/TypeScript 仅用于开发、构建和测试；最终产物是独立可执行的 JXA JavaScript 文件。运行时由 JXA 通过 Foundation 读取/写入文件，并在同一进程中初始化、复用唯一的 AnyDoc WASM 实例。
+## 核心设计
 
-## 核心架构
+构建时由 Node.js、TypeScript 和 esbuild 将 `@firecrawl/anydoc-wasm` 的 WASM 二进制及 wasm-bindgen Glue 嵌入独立 JXA JavaScript。交付后程序在 macOS 的 JXA 宿主中通过 Foundation 读写文件、直接使用 WebAssembly，不再依赖 Node、npm、JSC 或外部子进程。
 
-- **Node.js / TypeScript**：开发模式入口、依赖资产解析、静态检查和测试。
-- **build.js / esbuild**：将 AnyDoc wasm-bindgen glue、WASM 二进制和 TypeScript JXA 入口打包为 `dist/anydoc-wasm.jxa.js`。
-- **JXA**：负责命令行参数、目录创建、PDF 扫描/读取和 Markdown 写出。
-- **Objective-C Foundation**：通过 `NSData`、`NSString`、`NSFileManager` 完成文件系统操作。
-- **WASM singleton**：每个进程只初始化一次 WebAssembly Module/Instance，批量转换时复用同一个引擎。
-
-JXA 运行时不启动 JSC、NSTask、Node 子进程或其他解释器。
+每个处理进程只初始化一个 WASM 实例，依次转换目录内需要处理的 PDF。**发现目标 Markdown 已存在时跳过，不覆盖**；如果全部存在，连 WASM 都不初始化。
 
 ## 环境与安装
 
-- macOS（需要 `osascript` 和 JXA Objective-C bridge）
-- Node.js 24+
-- npm
+- macOS（JXA / `osascript` + Objective-C Foundation）
+- Node.js 24+（仅开发、构建、测试）
+- npm 与提交的 `package-lock.json`
 
 ```bash
 npm ci
@@ -28,89 +22,103 @@ npm run typecheck
 
 ## 使用方式
 
-### 开发模式（Node + TypeScript）
+### 开发模式：Node/tsx
 
 ```bash
-npx --no-install tsx src/hosts/node.ts ./tests/chunk_1.pdf
+npx --no-install tsx src/hosts/node.ts ./tests
 ```
 
-### 构建独立 JXA 程序
+### 打包及交付模式：JXA
 
 ```bash
 npm run build
+./dist/anydoc-wasm.jxa.js ./tests
 ```
 
-构建产物：`dist/anydoc-wasm.jxa.js`。
+运行时递归扫描 `./tests`，在输入目录的**同级**生成 `./tests_md`：
 
-### 执行独立 JXA 程序
+```text
+tests/
+├── chunk_1.pdf
+└── reports/
+    └── 2026/
+        └── final.PDF
+
+tests_md/
+├── chunk_1.md
+└── reports/
+    └── 2026/
+        └── final.md
+```
+
+上面的 reports 示例用于解释镜像关系，仓库当前不保证包含该示例子目录。
+
+指定单独的输出根目录（仍保留输入目录的相对层级）：
 
 ```bash
-./dist/anydoc-wasm.jxa.js ./tests/chunk_1.pdf
+./dist/anydoc-wasm.jxa.js --output-dir ./my-markdown ./tests
 ```
 
-也可以通过 osascript：
+**处理规则**
 
-```bash
-osascript -l JavaScript ./dist/anydoc-wasm.jxa.js ./tests/chunk_1.pdf
-```
+- CLI 只接受一个目录；单个 PDF、多个 PDF 路径、多个目录输入均会报错。
+- 递归识别大小写不敏感的 `.pdf` 文件；忽略普通非 PDF 文件与符号链接。
+- 输出目录为 `A_md`（或 `--output-dir` 指定目录），保留相对路径，文件扩展名统一为 `.md`。
+- 已存在的 Markdown **跳过**：不重新计算、不替换内容。新文件继续转换；全部存在时不初始化 WASM。
+- 预先发现目标文件名冲突则报错。运行结果包含扫描数量、转换数量、跳过数量、失败数量和 WASM 初始化次数。
+- 一个 PDF 转换失败会记录错误并继续处理其他 PDF；Node 入口在存在失败时返回非零退出码。
+- JXA 生成的文件和 Node 生成的文件遵循相同的核心逻辑，正式交付仅使用 JXA。
 
-默认在输入 PDF 同目录写出同名 Markdown。支持一次传入多个 PDF；如需指定输出目录：
-
-```bash
-./dist/anydoc-wasm.jxa.js --output-dir ./output ./a.pdf ./b.pdf
-```
-
-## 测试体系（TypeScript + JavaScript）
-
-测试目录不使用 Python。测试覆盖：
-
-- `tests/unit.test.ts`：Node 原生测试运行器，验证 JSON 协议、报告转义、Markdown 校验、目录结构及 PDF fixture。
-- `tests/probe.js` + `tests/run-probes.ts`：只测试 **JXA** 的 macOS 宿主能力边界，包括 WebAssembly、Foundation、ObjC bridge、Application API 和文件系统读写；不再运行 JSC 能力测试。
-- `tests/run-anydoc.ts`：使用真实 AnyDoc WASM 对 PDF 执行一次 Node 对照和一次 JXA 原生转换，验证 Markdown SHA256 一致。
-- `tests/run-single-process.ts`：验证 Node/TSX、JXA osascript、独立 JXA 可执行文件三种入口；每个进程连续转换两份 PDF，WASM 初始化恰好一次，Markdown MD5/SHA256 一致。
-- `tests/build-anydoc.cjs`、`tests/anydoc-runtime.js`：构建独立真实 WASM 转换 smoke test。
-
-运行全部测试：
-
-```bash
-npm test
-```
-
-也可分别运行：
-
-```bash
-npm run test:unit
-npm run test:probes
-npm run test:anydoc
-npm run test:singleton
-```
-
-## CI 与报告
-
-GitHub Actions 在 macOS + Node.js 24 上运行 TypeScript 静态检查、JXA 能力边界探针、真实 WASM 转换及多 PDF 单例回归。无论测试成功或失败，都会生成/保留 `test_report.md`，并上传日志和 Markdown 结果 Artifact。
-
-`test_report.md` 由 TypeScript 测试程序生成；CI 仅回写报告文件，并忽略报告文件的 push 触发，避免工作流循环。
-
-
-## TypeScript → JXA 模板分层
+## TypeScript 分层
 
 ```text
 src/
-├── core/         engine.ts（WASM 单例）+ batch.ts（转换编排）
-├── ports/        file-port.ts（文件系统抽象契约）
-├── adapters/     node-fs.ts + cocoa-fs.ts（宿主实现）
-├── hosts/        node.ts（TSX 开发入口）+ node-assets.ts（统一 WASM 资产加载）+ jxa.ts（JXA 发布入口）
-└── shared/       base64.ts + polyfills.ts
+├── core/
+│   ├── engine.ts           # WASM 单例引擎及 PDF→Markdown
+│   └── processor.ts        # 目录扫描、路径镜像、跳过规则和串行转换
+├── ports/
+│   └── file-port.ts        # 文件系统契约
+├── adapters/
+│   ├── node-fs.ts          # Node 文件系统实现
+│   └── cocoa-fs.ts         # Foundation 文件系统实现
+├── hosts/
+│   ├── node.ts             # 开发入口
+│   ├── node-assets.ts      # 开发与构建阶段共用 WASM/Glue 定位
+│   └── jxa.ts              # JXA 交付入口
+└── shared/
+    ├── base64.ts
+    └── polyfills.ts
 ```
 
-开发阶段：`npx --no-install tsx src/hosts/node.ts ./tests/chunk_1.pdf`；构建阶段：`node build.js`；交付产物：`dist/anydoc-wasm.jxa.js`，在 macOS 使用 `osascript -l JavaScript` 或直接执行。JXA 运行时不依赖 Node/npm，也不启动 JSC 子进程。Node 与 JXA 共享 core 和 ports，仅 adapters/hosts 依宿主切换。
+`processor.ts` 不依赖 Node API 或 ObjC，目录递归算法在开发和交付环境中共用。根目录 `build.js` 直接复用 `src/hosts/node-assets.ts` 加载 WASM 和 Glue 资产，不再需要额外 tools/scripts 目录。
 
-依赖版本由 `package.json` 精确指定、`package-lock.json` 固定依赖树；首次安装与 CI 均使用 `npm ci`。所有源码变更均由 macOS GitHub Actions 执行 TS 类型检查、JXA 宿主能力探针、真实 WASM 转换和双 PDF 单例测试，测试报告写入 `test_report.md`。
+## 自动化测试
 
+测试全部采用 TypeScript/JavaScript，不引入 Python。
 
-### 单一 WASM 资产加载入口
+```bash
+npm run test:unit       # 输入参数、目录规划、输出跳过及安全规则
+npm run test:probes     # Node 单元测试 + JXA Foundation/WASM 能力边界探针
+npm run test:directory  # 真实目录递归：Node 与 JXA 输出 SHA256 对照
+npm test                # 依次执行 typecheck、probes、directory
+```
 
-`src/hosts/node-assets.ts` 是 Node 开发与构建共用的唯一 WASM/Glue 加载实现：解析 npm 包、读取并校验 WASM、选择 Glue、转换为 IIFE。根目录 `build.js` 通过 `tsx/cjs` 直接加载该 TypeScript 模块，Node 开发入口也直接调用它，避免依赖升级时双处维护。该 TypeScript 模块**仅在 Node 环境使用**，不参与 JXA 运行时打包；JXA 继续从编译后的 JS 内嵌常量获取 WASM/Glue。
+`tests/run-directory.ts` 以 `tests/chunk_1.pdf` 构建两层目录测试夹具，分别通过 Node/tsx 和 **JXA 可执行入口**生成两个相互独立的 Markdown 目录树。测试逐文件比较两种模式产出的 SHA256，同时验证历史 AnyDoc 转换基准、目录结构、WASM 单例及第二次运行跳过文件且不更改内容的行为。
 
+CI 的工作目录位于 `tests/output/`，原始输入 PDF fixture 不被修改。
 
-项目不再使用额外的 `tools/`、`scripts/` 目录。Node 专用 WASM 资产加载位于 `src/hosts/node-assets.ts`，诊断脚本位于 `tests/doctor.cjs`；根目录仅保留构建入口及 npm 配置。
+## GitHub Actions 与双轨报告
+
+`.github/workflows/test_macos.yml` 在 **macos-latest + Node.js 24** 上完成依赖安装、诊断、类型检查、Node/JXA 能力测试、真实目录转换测试。
+
+- 每个测试阶段即使失败也继续进入报告汇总。
+- `test_report.md` 永远包含该次 CI 的阶段状态以及错误摘要；具体日志保留在 Actions Artifacts。
+- 在分支 **push** 工作流中自动提交 `test_report.md` 回本分支，便于 GitHub 页面直接查看；PR 工作流不直接回写，避免权限问题和重复提交。
+- 工作流的 push 触发明确忽略 `test_report.md`，防止机器人提交报告引发循环。
+- 最终断言失败时整个 job 仍然失败，报告保存不代表测试成功。
+
+## 实现范围说明
+
+本项目仅针对 macOS JXA + Foundation 交付。Node/tsx 是构建与正确性对照环境，而非额外的正式发布程序。没有 JSC 子进程、独立 wasm 文件或额外 npm 框架。
+
+CI 失败摘要由纯 JavaScript 的 `tests/summarize-ci.cjs` 汇总，不依赖 npm 安装成功，也不使用 Python。

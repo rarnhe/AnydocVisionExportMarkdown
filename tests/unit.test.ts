@@ -3,8 +3,8 @@ import {readdirSync, readFileSync, statSync} from "node:fs";
 import path from "node:path";
 import {test} from "node:test";
 import {
-  ANYDOC_PREFIX, BATCH_PREFIX, PROBE_PREFIX,
-  extractAnyDocResult, extractBatchOutput, extractProbeResult,
+  BATCH_PREFIX, PROBE_PREFIX,
+  extractBatchOutput, extractProbeResult,
   mdEscape, safe, validateMarkdownBytes
 } from "./test-utils";
 
@@ -26,17 +26,9 @@ test("probe parser rejects missing marker and wrong schema", () => {
 test("Markdown report escaping handles pipes and newlines", () => {
   assert.equal(mdEscape("a|b\nc"), "a\\|b c");
 });
-test("AnyDoc parser accepts trailing output", () => {
-  const value = {schema: 1, engine: "JXA", success: false};
-  assert.deepEqual(extractAnyDocResult("noise\n" + ANYDOC_PREFIX + JSON.stringify(value) + "\ntrailing"), value);
-});
-test("AnyDoc parser rejects missing marker and invalid schema", () => {
-  assert.throws(() => extractAnyDocResult("wasm unavailable"), /marker absent/);
-  assert.throws(() => extractAnyDocResult(ANYDOC_PREFIX + '{"schema":2}'), /schema/);
-});
 test("batch parser accepts JXA and Node results", () => {
   const jxa = {schema: 1, runtime: "JXA", mode: "single-process", wasmInitializationCount: 1, conversionCount: 2, conversions: []};
-  const node = {...jxa, runtime: "Node", conversionCount: 1};
+  const node = {...jxa, runtime: "Node"};
   assert.deepEqual(extractBatchOutput("noise\n" + BATCH_PREFIX + JSON.stringify(jxa)), jxa);
   assert.deepEqual(extractBatchOutput(BATCH_PREFIX + JSON.stringify(node) + "\ntrailing"), node);
 });
@@ -54,7 +46,7 @@ test("Markdown validator accepts UTF-8 and rejects short or placeholder content"
   assert.throws(() => validateMarkdownBytes(new TextEncoder().encode("MARKDOWN_OUTPUT_START " + "x".repeat(50))), /Placeholder/);
 });
 test("TS to JXA ports/adapters template files exist", () => {
-  for (const file of ["build.js", "package-lock.json", "src/hosts/node.ts", "src/hosts/jxa.ts", "src/core/engine.ts", "src/core/batch.ts", "src/ports/file-port.ts", "src/adapters/node-fs.ts", "src/adapters/cocoa-fs.ts"]) {
+  for (const file of ["build.js", "package-lock.json", "src/hosts/node.ts", "src/hosts/jxa.ts", "src/core/engine.ts", "src/core/processor.ts", "src/ports/file-port.ts", "src/adapters/node-fs.ts", "src/adapters/cocoa-fs.ts"]) {
     assert.equal(statSync(path.join(ROOT, file)).isFile(), true, file);
   }
 });
@@ -98,7 +90,7 @@ test("CI uses reproducible npm ci with committed lockfile", () => {
 test("production JXA entry and Node host share core but not host APIs", () => {
   const jxa = readFileSync(path.join(ROOT, "src/hosts/jxa.ts"), "utf8");
   const node = readFileSync(path.join(ROOT, "src/hosts/node.ts"), "utf8");
-  const core = readFileSync(path.join(ROOT, "src/core/batch.ts"), "utf8");
+  const core = readFileSync(path.join(ROOT, "src/core/processor.ts"), "utf8");
   assert.match(jxa, /\.\.\/adapters\/cocoa-fs/);
   assert.match(node, /\.\.\/adapters\/node-fs/);
   assert.match(core, /\.\.\/ports\/file-port/);
@@ -115,4 +107,47 @@ test("build and TSX development use one TypeScript asset loader", () => {
   assert.match(loader, /esbuild\.transformSync/);
   assert.doesNotMatch(jxa, /node-assets|node:fs|require\(/);
   assert.equal(statSync(path.join(ROOT, "tests/doctor.cjs")).isFile(), true);
+});
+
+test("recursive directory processor plans nested PDF paths", async () => {
+  const {planConversions} = await import("../src/core/processor");
+  const {createNodeFilePort} = await import("../src/adapters/node-fs");
+  const {mkdtempSync,mkdirSync,writeFileSync,rmSync} = await import("node:fs");
+  const temp=mkdtempSync(path.join(TESTS,"temp-dir-"));
+  try {
+    mkdirSync(path.join(temp,"nested"),{recursive:true});
+    writeFileSync(path.join(temp,"A.pdf"),"pdf");
+    writeFileSync(path.join(temp,"nested","B.PDF"),"pdf");
+    writeFileSync(path.join(temp,"nested","skip.txt"),"skip");
+    const plan=planConversions([temp],createNodeFilePort());
+    assert.deepEqual(plan.map(x=>x.output),[temp+"_md/A.md",temp+"_md/nested/B.md"]);
+    assert.throws(()=>planConversions([temp,path.join(temp,"A.pdf")],createNodeFilePort()),/exactly one directory/);
+    assert.throws(()=>planConversions([path.join(temp,"A.pdf")],createNodeFilePort()),/Expected an existing directory/);
+  } finally {rmSync(temp,{recursive:true,force:true});}
+});
+
+test("existing Markdown is skipped without WASM initialization or overwrite", async () => {
+  const {processInputs,planConversions} = await import("../src/core/processor");
+  const {createNodeFilePort} = await import("../src/adapters/node-fs");
+  const {mkdtempSync,writeFileSync,readFileSync,rmSync} = await import("node:fs");
+  const dir=mkdtempSync(path.join(TESTS,"temp-skip-")), target=dir+"_md";
+  try {
+    writeFileSync(path.join(dir,"test.pdf"),"fixture");
+    const port=createNodeFilePort(), tasks=planConversions([dir],port);
+    port.ensureDirectory(target);
+    writeFileSync(tasks[0].output,"ORIGINAL");
+    const result=processInputs([dir],port,{wasmBytes:new Uint8Array(),glueCode:""},"Node");
+    assert.equal(result.conversionCount,0);
+    assert.equal(result.skippedCount,1);
+    assert.equal(result.wasmInitializationCount,0);
+    assert.equal(readFileSync(tasks[0].output,"utf8"),"ORIGINAL");
+    assert.throws(()=>port.writeText(tasks[0].output,"OVERWRITE"),/EEXIST/);
+  } finally {rmSync(dir,{recursive:true,force:true});rmSync(target,{recursive:true,force:true});}
+});
+
+test("report aggregation is JavaScript-only and always runs", () => {
+  const ci=readFileSync(path.join(ROOT,".github/workflows/test_macos.yml"),"utf8");
+  assert.match(ci,/node tests\/summarize-ci\.cjs/);
+  assert.doesNotMatch(ci,/python3/);
+  assert.match(readFileSync(path.join(ROOT,"tests/summarize-ci.cjs"),"utf8"),/STAGE_DIRECTORY/);
 });

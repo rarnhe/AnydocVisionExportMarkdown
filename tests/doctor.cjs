@@ -8,9 +8,9 @@ const required = [
   "build.js", "package.json", "package-lock.json", "tsconfig.json",
   "src/hosts/node.ts", "src/hosts/node-assets.ts", "src/hosts/jxa.ts",
   "src/adapters/node-fs.ts", "src/adapters/cocoa-fs.ts",
-  "src/core/engine.ts", "src/core/batch.ts", "src/ports/file-port.ts", "src/shared/base64.ts",
+  "src/core/engine.ts", "src/core/processor.ts", "src/ports/file-port.ts", "src/shared/base64.ts",
   "tests/chunk_1.pdf", "tests/unit.test.ts", "tests/test-utils.ts",
-  "tests/probe.js", "tests/run-probes.ts", "tests/run-anydoc.ts", "tests/run-single-process.ts"
+  "tests/probe.js", "tests/run-probes.ts", "tests/run-directory.ts", "tests/summarize-ci.cjs"
 ];
 const failures = [];
 function output(level, message) { process.stdout.write("[" + level + "] " + message + "\n"); }

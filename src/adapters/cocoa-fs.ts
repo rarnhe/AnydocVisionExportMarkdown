@@ -18,11 +18,12 @@ export function createCocoaFilePort(): FilePort {
     if (!attrs) return "missing";
     // JXA bridges NSDictionary into a plain JS object; objectForKey() may not exist.
     const properties = ObjC.unwrap(attrs);
-    const type = String(properties.NSFileType ?? properties[unwrap($.NSFileType)] ?? "");
+    const nativeType = properties.NSFileType ?? properties[unwrap($.NSFileType)];
+    const type = nativeType ? unwrap(nativeType) : "";
     if (type === unwrap($.NSFileTypeDirectory)) return "directory";
     if (type === unwrap($.NSFileTypeRegular)) return "file";
     if (type === unwrap($.NSFileTypeSymbolicLink)) return "symlink";
-    throw new Error("Unrecognized Cocoa file type for " + path + ": " + type + "; keys=" + Object.keys(properties).join(",") + "; expected=" + unwrap($.NSFileTypeDirectory));
+    return "other";
   }
   return {
     stat,
@@ -34,7 +35,7 @@ export function createCocoaFilePort(): FilePort {
       const names: unknown = ObjC.unwrap(entries);
       if (!Array.isArray(names)) throw new Error("Unexpected Foundation directory listing: " + path);
       for (const item of names) {
-        const name = String(item);
+        const name = typeof item === "string" ? item : unwrap(item);
         found.push({name, kind: stat(path.replace(/\/+$/, "") + "/" + name) as EntryKind});
       }
       return found;

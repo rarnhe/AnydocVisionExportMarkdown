@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-06T04:26:44.503Z
+- 测试时间 (UTC): 2026-11-06T04:38:09.026Z
 - 系统: ProductName:		macOS; ProductVersion:		26.6.2; BuildVersion:		25G83
 - Node.js: v24.22.1
-- GitHub SHA: db5a3e2f910f6ab13e895ff5d61c703a55a6e5f2
-- GitHub Run: 42162523827
+- GitHub SHA: 95096317d1fbaa51b9ffc55cf8fa66c3eb62c9fe
+- GitHub Run: 42163163765
 
 ## 测试状态
 
@@ -111,27 +111,28 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 - 每个进程处理原始 PDF 与同字节副本，断言 WASM 初始化 1 次、转换 2 次。
 - Node TSX、JXA osascript、JXA 可执行文件生成的 Markdown MD5 必须一致。
 - 历史真实 AnyDoc SHA256 基准：2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131
-- 结论：**FAIL**
+- 结论：**PASS**
 
 | 步骤 | 结果 | WASM init | PDF count | bytes | MD5 | SHA256 | 详情 |
 |---|---|---:|---:|---:|---|---|---|
-| build | PASS | - | - | - | - | - | Bundle generated, size=8941114 |
-| node-tsx | FAIL | - | - | - | - | - | Error: Exit 1: rnal/modules/cjs/loader:1929:14)     at Object.transformer (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/tsx/dist/register-B1c7OH6V.cjs:22:2188)     at Module.load (node:internal/modules/cjs/loader:1651:32)     at Module._load (node:internal/modules/cjs/loader:144 |
-| jxa-osascript | FAIL | - | - | - | - | - | Error: Exit 1:  /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: ReferenceError: Can't find variable: convertBatch (-2700)  |
-| jxa-executable | FAIL | - | - | - | - | - | Error: Exit 1:  /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/dist/anydoc-wasm.jxa.js: execution error: Error: ReferenceError: Can't find variable: convertBatch (-2700)  |
+| build | PASS | - | - | - | - | - | Bundle generated, size=8949479 |
+| node-tsx | PASS | 1 | 2 | 43139 | a81c4262b857e793c8093d8a302ba697 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2 PDFs converted in one process; one WASM initialization |
+| jxa-osascript | PASS | 1 | 2 | 43139 | a81c4262b857e793c8093d8a302ba697 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2 PDFs converted in one process; one WASM initialization |
+| jxa-executable | PASS | 1 | 2 | 43139 | a81c4262b857e793c8093d8a302ba697 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2 PDFs converted in one process; one WASM initialization |
 
-- 三种运行时 MD5 完全一致：**FAIL**
-- 历史 SHA256 基准一致：**FAIL**
+- 三种运行时 MD5 完全一致：**PASS**
+- 历史 SHA256 基准一致：**PASS**
 - Markdown 与日志保存在 tests/output/ 并上传为 Actions Artifact。
 
 ## 递归目录转换
 
-- FAIL: Error: node failed: sionExportMarkdown/src/hosts/node.ts:8:18)     at Object.<anonymous> (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/src/hosts/node.ts:13:1)     at Module._compile (node:internal/modules/cjs/loader:1929:14)     at Object.transformer (/Users/runner/work/AnydocVisionExportMar
+- PASS: 3 runtimes, nested directory, 2 PDFs, one WASM init, identical SHA256 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131
 
 ## CI 最终阶段状态
 - Dependencies: success
 - Checkout / Node 24 doctor: success
-- TypeScript typecheck: failure
+- TypeScript typecheck: success
 - TypeScript unit tests + JXA native probe: success
 - Real AnyDoc Node/JXA baseline: success
-- JXA single-process singleton MD5 comparison: failuren echo - Recursive directory conversion: failure
+- JXA single-process singleton MD5 comparison: success
+- Recursive directory conversion: success

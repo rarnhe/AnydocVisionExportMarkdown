@@ -12,7 +12,8 @@ const path = require("node:path");
 const esbuild = require("esbuild");
 
 const root = __dirname;
-const {wasmBytes, glueCode} = require("./tools/wasm-assets.cjs").loadPackageAssets();
+require("tsx/cjs");
+const {wasmBytes, glueCode} = require("./src/hosts/node-assets.ts").loadPackageAssets();
 
 const outFile = path.join(root, "dist", "anydoc-wasm.jxa.js");
 fs.mkdirSync(path.dirname(outFile), {recursive: true});
@@ -27,7 +28,7 @@ esbuild.buildSync({
   banner: {js: "#!/usr/bin/osascript -l JavaScript"},
   footer: {js: "\nfunction run(argv) { return JxaAnyDoc.run(argv); }\n"},
   define: {
-    "__EMBEDDED_WASM_B64__": JSON.stringify(wasmBytes.toString("base64")),
+    "__EMBEDDED_WASM_B64__": JSON.stringify(Buffer.from(wasmBytes).toString("base64")),
     "__EMBEDDED_GLUE_CODE__": JSON.stringify(glueCode)
   },
   logLevel: "info"

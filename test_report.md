@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-05T16:59:23.244Z
+- 测试时间 (UTC): 2026-11-06T02:42:40.007Z
 - 系统: ProductName:		macOS; ProductVersion:		26.6.2; BuildVersion:		25G83
 - Node.js: v24.22.1
-- GitHub SHA: 24b411114175c3563bcb238b672e791b04e8af65
-- GitHub Run: 42070057845
+- GitHub SHA: 6ae244bbb3fc6c8e97400b94f36590427b85ad9f
+- GitHub Run: 42152021901
 
 ## 测试状态
 
@@ -115,7 +115,7 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 | 步骤 | 结果 | WASM init | PDF count | bytes | MD5 | SHA256 | 详情 |
 |---|---|---:|---:|---:|---|---|---|
-| build | PASS | - | - | - | - | - | Bundle generated, size=8945435 |
+| build | PASS | - | - | - | - | - | Bundle generated, size=8945427 |
 | node-tsx | PASS | 1 | 2 | 43139 | a81c4262b857e793c8093d8a302ba697 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2 PDFs converted in one process; one WASM initialization |
 | jxa-osascript | PASS | 1 | 2 | 43139 | a81c4262b857e793c8093d8a302ba697 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2 PDFs converted in one process; one WASM initialization |
 | jxa-executable | PASS | 1 | 2 | 43139 | a81c4262b857e793c8093d8a302ba697 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2 PDFs converted in one process; one WASM initialization |

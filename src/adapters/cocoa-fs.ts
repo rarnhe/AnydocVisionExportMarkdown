@@ -54,7 +54,7 @@ export function createCocoaFilePort(): FilePort {
       // (0x1000000) is unavailable on older macOS, so use Foundation createFile:
       // guarded by the same existence check; never intentionally replace a file.
       const data = ns(content).dataUsingEncoding($.NSUTF8StringEncoding);
-      const ok = manager.createFileAtPathContentsAttributes(ns(path), data, null);
+      const ok = manager.createFileAtPathContentsAttributes(ns(path), data, $.NSDictionary.dictionary);
       if (!ok) throw new Error("Foundation could not create Markdown: " + path);
     },
     ensureDirectory(path) {

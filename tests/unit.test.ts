@@ -72,7 +72,7 @@ test("real PDF fixture exists and has a valid header", () => {
 test("package build and doctor scripts are declared", () => {
   const source = readFileSync(path.join(ROOT, "build.js"), "utf8");
   const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
-  assert.match(source, /anydoc-wasm\.jxa\.js/);
+  assert.match(source, /anydoc-wasm\.osascript\.js/);
   assert.equal(pkg.scripts.build, "node build.js");
   assert.equal(pkg.scripts.doctor, "node tests/doctor.cjs");
 });
@@ -180,4 +180,12 @@ test("Automator build wraps the entire engine inside the default run snippet", (
   assert.ok(build.includes("embeddedBundle.text"));
   assert.ok(build.includes("return input;"));
   assert.ok(build.includes('fs.writeFileSync(automator, automatorSource, "utf8")'));
+});
+
+test("Automator JXA object harness uses executable newlines and keeps original run", () => {
+  const runner=readFileSync(path.join(ROOT,"tests/run-directory.ts"),"utf8");
+  assert.ok(runner.includes("var __automatorOriginalRun = run;"));
+  assert.ok(runner.includes("run = function(argv)"));
+  assert.ok(runner.includes('Path(argv[0])'));
+  assert.ok(!runner.includes('function run(argv) { return __automatorOriginalRun'));
 });

@@ -134,9 +134,9 @@ function main():string[] {
   // Simulate Automator passing a Finder-like JXA Path object rather than a
   // CLI string. The wrapper calls the actual pasted function unchanged.
   const objectHarness=path.join(OUTPUT,"automator-path-harness.js");
-  writeFileSync(objectHarness,automatorSource +
-    "\\nvar __automatorOriginalRun = run;\\n" +
-    "function run(argv) { return __automatorOriginalRun([Path(argv[0])], {}); }\\n");
+  writeFileSync(objectHarness, automatorSource +
+    "\nvar __automatorOriginalRun = run;\n" +
+    "run = function(argv) { return __automatorOriginalRun([Path(argv[0])], {}); };\n");
   const objectPdf=path.join(OUTPUT,"automator-object.pdf");
   copyFileSync(FIXTURE,objectPdf);
   rmSync(path.join(OUTPUT,"automator-object.md"),{force:true});

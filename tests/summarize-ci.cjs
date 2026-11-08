@@ -24,6 +24,15 @@ for (const [name, , log] of failed) {
     const tail = fs.readFileSync(file, "utf8").split(/\r?\n/).slice(-25).map(line => line.slice(0, 450));
     lines.push("```text", ...tail, "```", "");
   } else lines.push("- 日志不存在（该阶段可能未能启动）。", "");
+  // Unit-test details are captured in a separate log by run-probes.ts;
+  // include them here so the committed report identifies the actual assertion.
+  if (name === "Unit + JXA probe") {
+    const unitLog = path.join(root, "tests/output/unit-tests.log");
+    if (fs.existsSync(unitLog)) {
+      const tail = fs.readFileSync(unitLog, "utf8").split(/\\r?\\n/).slice(-70).map(line => line.slice(0, 450));
+      lines.push("#### Node unit test details", "", "```text", ...tail, "```", "");
+    }
+  }
 }
 if (!failed.length) lines.push("- 无，所有必要阶段通过。", "");
 fs.appendFileSync(report, lines.join("\n") + "\n", "utf8");

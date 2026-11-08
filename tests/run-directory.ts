@@ -131,6 +131,21 @@ function main():string[] {
   if(sha(path.join(autoDir+"_md 2","root.md"))!==GOLDEN)
     throw Error("Automator folder second-run SHA256 mismatch");
   lines.push("| Automator folder 2/root.md | "+GOLDEN+" | "+GOLDEN+" | PASS |");
+  // Simulate Automator passing a Finder-like JXA Path object rather than a
+  // CLI string. The wrapper calls the actual pasted function unchanged.
+  const objectHarness=path.join(OUTPUT,"automator-path-harness.js");
+  writeFileSync(objectHarness,automatorSource +
+    "\\nvar __automatorOriginalRun = run;\\n" +
+    "function run(argv) { return __automatorOriginalRun([Path(argv[0])], {}); }\\n");
+  const objectPdf=path.join(OUTPUT,"automator-object.pdf");
+  copyFileSync(FIXTURE,objectPdf);
+  rmSync(path.join(OUTPUT,"automator-object.md"),{force:true});
+  const objectRun=run("automator-path-object","osascript",["-l","JavaScript",objectHarness,objectPdf]);
+  if(objectRun.status!==0)throw Error("Automator JXA Path input failed: "+safe(objectRun.stderr||objectRun.stdout,900));
+  if(sha(path.join(OUTPUT,"automator-object.md"))!==GOLDEN)
+    throw Error("Automator JXA Path object SHA256 regression");
+  lines.push("| Automator Path object PDF | "+GOLDEN+" | "+GOLDEN+" | PASS |");
+
   // Invalid input must fail rather than silently process multiple items.
   const invalid=run("automator-no-input","osascript",["-l","JavaScript",automatorBundle]);
   if(invalid.status===0)throw Error("Automator accepted missing Finder selection");

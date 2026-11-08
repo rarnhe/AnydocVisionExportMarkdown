@@ -127,3 +127,7 @@ Automator 版本不需要命令行 shebang，也不启动 `osascript` 子进程�
 `dist/anydoc-wasm.automator.js` 的**第一行**就是 `function run(input, parameters) {`，完整的 AnyDoc/WASM 打包代码嵌入这个函数体中，末尾为 `return input;`。因此在 Automator 的「运行 JavaScript」中，应**全选替换**默认示例，而不是把脚本插入默认函数内部。
 
 `tests/run-directory.ts` 在 macOS CI 中通过 `osascript -l JavaScript` 直接执行 Automator 版本，检查单 PDF、递归文件夹、第二次运行编号、SHA256 与 CLI 一致，以及缺失输入时拒绝执行；同时检查打包后的文件以 `run(input, parameters)` 开头。**这验证 JXA 代码和转换结果，不等于在真实 Finder/Automator 图形会话中验证了 Apple Events 授权与对象桥接**，后者仍需在本机 Finder 中验收。
+
+### Automator 对象输入的独立 CI 验证
+
+macOS CI 除了直接以 `osascript` 执行 Automator 脚本外，还通过临时测试包装器向**同一个打包后的 `run(input, parameters)` 函数**传入 `Path(...)` 对象，模拟 Finder 风格的 JXA 文件对象。验证真实 PDF 转换成功，Markdown SHA256 与 Node/JXA CLI 基准一致。该测试不启动 Automator 图形界面，也不替代 Finder/TCC 授权验收。

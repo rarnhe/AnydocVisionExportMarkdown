@@ -173,3 +173,11 @@ test("build emits distinct osascript and Automator entrypoints", () => {
   assert.ok(build.includes("return input;"));
   assert.equal(build.includes("anydoc-wasm.jxa.js"),false);
 });
+
+test("Automator build wraps the entire engine inside the default run snippet", () => {
+  const build=readFileSync(path.join(ROOT,"build.js"),"utf8");
+  assert.ok(build.includes("const automatorSource = `function run(input, parameters) {"));
+  assert.ok(build.includes("embeddedBundle.text"));
+  assert.ok(build.includes("return input;"));
+  assert.ok(build.includes('fs.writeFileSync(automator, automatorSource, "utf8")'));
+});

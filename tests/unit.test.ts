@@ -164,11 +164,12 @@ test("TypeScript uses modern bundler resolution without suppressing deprecations
 });
 test("build emits distinct osascript and Automator entrypoints", () => {
   const build=readFileSync(path.join(ROOT,"build.js"),"utf8");
-  assert.match(build,/anydoc-wasm\\.osascript\\.js/);
-  assert.match(build,/anydoc-wasm\\.automator\\.js/);
-  assert.match(build,/function run\\(argv\\)/);
-  assert.match(build,/function run\\(input, parameters\\)/);
-  assert.match(build,/JxaAnyDoc\\.run\\(\\[posixPath\\]\\)/);
-  assert.match(build,/return input;/);
-  assert.doesNotMatch(build,/anydoc-wasm\\.jxa\\.js/);
+  for (const name of ["anydoc-wasm.osascript.js","anydoc-wasm.automator.js"]) {
+    assert.ok(build.includes(name), name);
+  }
+  assert.ok(build.includes("function run(argv)"));
+  assert.ok(build.includes("function run(input, parameters)"));
+  assert.ok(build.includes("JxaAnyDoc.run([posixPath])"));
+  assert.ok(build.includes("return input;"));
+  assert.equal(build.includes("anydoc-wasm.jxa.js"),false);
 });

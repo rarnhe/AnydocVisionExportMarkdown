@@ -1,0 +1,132 @@
+import {AnyDocAssets, getAnyDocSingleton, getWasmInitializationCount} from "./engine";
+import type {FilePort} from "../ports/file-port";
+
+export interface ConversionResult {input: string; output: string; markdownCharacters: number}
+export interface ConversionTask {input: string; output: string}
+export interface ProcessingResult {
+  schema: 1;
+  runtime: "Node" | "JXA";
+  mode: "single-process";
+  wasmInitializationCount: number;
+  discoveredCount: number;
+  conversionCount: number;
+  conversions: ConversionResult[];
+  skippedCount: number;
+  skipped: Array<{input: string; output: string}>;
+  failureCount: number;
+  failures: Array<{input: string; message: string}>;
+}
+
+/** Exactly one PDF or one directory; multiple inputs and all flags are unsupported. */
+export function parseArguments(argv: string[]): string {
+  if (argv.length !== 1 || !argv[0] || String(argv[0]).startsWith("--")) {
+    throw new Error("Usage: <script> INPUT.pdf | INPUT_DIRECTORY (exactly one input; no options)");
+  }
+  return String(argv[0]);
+}
+function normalize(input: string): string {
+  const absolute = input.startsWith("/");
+  const parts: string[] = [];
+  for (const segment of input.split("/")) {
+    if (!segment || segment === ".") continue;
+    if (segment === "..") {
+      if (parts.length && parts[parts.length - 1] !== "..") parts.pop();
+      else if (!absolute) parts.push("..");
+    } else parts.push(segment);
+  }
+  return (absolute ? "/" : "") + parts.join("/") || (absolute ? "/" : ".");
+}
+function join(base: string, name: string): string {
+  return normalize(base.replace(/\/+$/, "") + "/" + name);
+}
+function dirname(name: string): string {
+  const value = normalize(name), slash = value.lastIndexOf("/");
+  return slash < 0 ? "." : slash === 0 ? "/" : value.slice(0, slash);
+}
+function relativePath(parent: string, child: string): string {
+  const prefix = parent === "/" ? "/" : parent + "/";
+  if (!child.startsWith(prefix)) throw new Error("Path is outside input tree: " + child);
+  return child.slice(prefix.length);
+}
+function discoverPdfs(root: string, port: FilePort): string[] {
+  const files: string[] = [], stack = [root];
+  while (stack.length) {
+    const directory = stack.pop()!;
+    const entries = port.listEntries(directory).slice().sort((a,b) => a.name.localeCompare(b.name));
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const entry = entries[i];
+      if (!entry.name || entry.name === "." || entry.name === ".." ||
+          entry.name.includes("/")) throw new Error("Unsafe directory entry: " + entry.name);
+      const full = join(directory, entry.name);
+      if (entry.kind === "directory") stack.push(full);
+      else if (entry.kind === "file" && /\.pdf$/i.test(entry.name)) files.push(full);
+    }
+  }
+  return files.sort();
+}
+function availablePath(base: string, port: FilePort, suffix: (n: number) => string, start: number): string {
+  let candidate = base, n = start;
+  while (port.stat(candidate) !== "missing") {
+    candidate = base + suffix(n++);
+    if (!Number.isSafeInteger(n)) throw new Error("Output suffix exhausted: " + base);
+  }
+  return candidate;
+}
+function availableMarkdown(stem: string, port: FilePort): string {
+  let n = 0;
+  while (true) {
+    const candidate = stem + (n ? "-" + n : "") + ".md";
+    if (port.stat(candidate) === "missing") return candidate;
+    if (!Number.isSafeInteger(++n)) throw new Error("Markdown suffix exhausted");
+  }
+}
+export function planConversions(argv: string[], port: FilePort): ConversionTask[] {
+  const input = normalize(parseArguments(argv)), kind = port.stat(input);
+  if (kind === "file") {
+    if (!/\.pdf$/i.test(input)) throw new Error("Expected a PDF file: " + input);
+    const stem = input.slice(0,-4);
+    // Same directory: file.md, file-1.md, file-2.md, ...
+    return [{input, output: availableMarkdown(stem, port)}];
+  }
+  if (kind !== "directory") throw new Error("Expected a PDF file or existing directory: " + input);
+  if (input === "/" || input === "." || input === ".." || input.endsWith("/..")) {
+    throw new Error("Specify a named directory, not filesystem root/current directory");
+  }
+  const base = input + "_md";
+  // Every folder run creates a new sibling tree: A_md, A_md 2, A_md 3, ...
+  const destination = availablePath(base, port, n => " " + n, 2);
+  const tasks = discoverPdfs(input,port).map(source => ({
+    input:source,output:join(destination,relativePath(input,source).slice(0,-4)+".md")
+  }));
+  const seen = new Set<string>();
+  for (const task of tasks) {
+    const key = task.output.toLowerCase();
+    if (seen.has(key)) throw new Error("Markdown output collision: " + task.output);
+    seen.add(key);
+  }
+  return tasks;
+}
+export function processInputs(
+  argv: string[], port: FilePort, assets: AnyDocAssets, runtime: "Node" | "JXA"
+): ProcessingResult {
+  const tasks = planConversions(argv,port);
+  const conversions: ConversionResult[] = [];
+  const failures: Array<{input:string;message:string}> = [];
+  // Both modes create new destinations; no old Markdown is silently skipped.
+  if (tasks.length) {
+    const engine = getAnyDocSingleton(assets);
+    for (const task of tasks) {
+      try {
+        const markdown = engine.convertPdf(port.readBytes(task.input));
+        port.ensureDirectory(dirname(task.output));
+        port.writeText(task.output,markdown);
+        conversions.push({input:task.input,output:task.output,markdownCharacters:markdown.length});
+      } catch(error) {
+        failures.push({input:task.input,message:String(error)});
+      }
+    }
+  }
+  return {schema:1,runtime,mode:"single-process",wasmInitializationCount:getWasmInitializationCount(),
+    discoveredCount:tasks.length,conversionCount:conversions.length,conversions,
+    skippedCount:0,skipped:[],failureCount:failures.length,failures};
+}

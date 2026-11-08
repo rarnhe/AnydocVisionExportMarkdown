@@ -109,42 +109,46 @@ test("build and TSX development use one TypeScript asset loader", () => {
   assert.equal(statSync(path.join(ROOT, "tests/doctor.cjs")).isFile(), true);
 });
 
-test("recursive directory processor plans nested PDF paths", async () => {
+test("single PDF output numbering starts at -1 and never overwrites", async () => {
+  const {planConversions,parseArguments} = await import("../src/core/processor");
+  const {createNodeFilePort} = await import("../src/adapters/node-fs");
+  const {mkdtempSync,writeFileSync,rmSync} = await import("node:fs");
+  const dir=mkdtempSync(path.join(TESTS,"temp-single-"));
+  try {
+    const pdf=path.join(dir,"paper.PDF"),port=createNodeFilePort();
+    writeFileSync(pdf,"pdf");
+    assert.equal(planConversions([pdf],port)[0].output,path.join(dir,"paper.md"));
+    writeFileSync(path.join(dir,"paper.md"),"old");
+    assert.equal(planConversions([pdf],port)[0].output,path.join(dir,"paper-1.md"));
+    writeFileSync(path.join(dir,"paper-1.md"),"old");
+    assert.equal(planConversions([pdf],port)[0].output,path.join(dir,"paper-2.md"));
+    assert.throws(()=>parseArguments([pdf,pdf]),/exactly one input/);
+    assert.throws(()=>parseArguments(["--output-dir",dir]),/exactly one input/);
+    assert.throws(()=>planConversions([path.join(dir,"missing.pdf")],port),/Expected a PDF file or existing directory/);
+  } finally {rmSync(dir,{recursive:true,force:true});}
+});
+test("recursive folder creates a fresh _md tree on each run, suffix starts at space 2", async () => {
   const {planConversions} = await import("../src/core/processor");
   const {createNodeFilePort} = await import("../src/adapters/node-fs");
   const {mkdtempSync,mkdirSync,writeFileSync,rmSync} = await import("node:fs");
-  const temp=mkdtempSync(path.join(TESTS,"temp-dir-"));
+  const dir=mkdtempSync(path.join(TESTS,"temp-folder-"));
   try {
-    mkdirSync(path.join(temp,"nested"),{recursive:true});
-    writeFileSync(path.join(temp,"A.pdf"),"pdf");
-    writeFileSync(path.join(temp,"nested","B.PDF"),"pdf");
-    writeFileSync(path.join(temp,"nested","skip.txt"),"skip");
-    const plan=planConversions([temp],createNodeFilePort());
-    assert.deepEqual(plan.map(x=>x.output),[temp+"_md/A.md",temp+"_md/nested/B.md"]);
-    assert.throws(()=>planConversions([temp,path.join(temp,"A.pdf")],createNodeFilePort()),/exactly one directory/);
-    assert.throws(()=>planConversions([path.join(temp,"A.pdf")],createNodeFilePort()),/Expected an existing directory/);
-  } finally {rmSync(temp,{recursive:true,force:true});}
+    mkdirSync(path.join(dir,"nested"),{recursive:true});
+    writeFileSync(path.join(dir,"A.pdf"),"pdf");
+    writeFileSync(path.join(dir,"nested","B.PDF"),"pdf");
+    const port=createNodeFilePort();
+    assert.deepEqual(planConversions([dir],port).map(x=>x.output),
+      [dir+"_md/A.md",dir+"_md/nested/B.md"]);
+    mkdirSync(dir+"_md");
+    assert.equal(planConversions([dir],port)[0].output,dir+"_md 2/A.md");
+    mkdirSync(dir+"_md 2");
+    assert.equal(planConversions([dir],port)[0].output,dir+"_md 3/A.md");
+    assert.throws(()=>planConversions([dir,dir],port),/exactly one input/);
+  } finally {
+    rmSync(dir,{recursive:true,force:true});
+    for (const suffix of ["_md","_md 2","_md 3"]) rmSync(dir+suffix,{recursive:true,force:true});
+  }
 });
-
-test("existing Markdown is skipped without WASM initialization or overwrite", async () => {
-  const {processInputs,planConversions} = await import("../src/core/processor");
-  const {createNodeFilePort} = await import("../src/adapters/node-fs");
-  const {mkdtempSync,writeFileSync,readFileSync,rmSync} = await import("node:fs");
-  const dir=mkdtempSync(path.join(TESTS,"temp-skip-")), target=dir+"_md";
-  try {
-    writeFileSync(path.join(dir,"test.pdf"),"fixture");
-    const port=createNodeFilePort(), tasks=planConversions([dir],port);
-    port.ensureDirectory(target);
-    writeFileSync(tasks[0].output,"ORIGINAL");
-    const result=processInputs([dir],port,{wasmBytes:new Uint8Array(),glueCode:""},"Node");
-    assert.equal(result.conversionCount,0);
-    assert.equal(result.skippedCount,1);
-    assert.equal(result.wasmInitializationCount,0);
-    assert.equal(readFileSync(tasks[0].output,"utf8"),"ORIGINAL");
-    assert.throws(()=>port.writeText(tasks[0].output,"OVERWRITE"),/EEXIST/);
-  } finally {rmSync(dir,{recursive:true,force:true});rmSync(target,{recursive:true,force:true});}
-});
-
 test("report aggregation is JavaScript-only and always runs", () => {
   const ci=readFileSync(path.join(ROOT,".github/workflows/test_macos.yml"),"utf8");
   assert.match(ci,/node tests\/summarize-ci\.cjs/);

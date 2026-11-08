@@ -4,114 +4,105 @@ import {copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, wri
 import path from "node:path";
 import {extractBatchOutput, safe, validateMarkdownBytes, type BatchResult} from "./test-utils";
 
-const ROOT = process.cwd();
-const OUTPUT = path.join(ROOT, "tests", "output");
-const REPORT = path.join(ROOT, "test_report.md");
-const FIXTURE = path.join(ROOT, "tests", "chunk_1.pdf");
-const INPUT = path.join(OUTPUT, "directory-fixture");
-const GOLDEN = "2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131";
-
-interface Run {name: string; status: number; stdout: string; stderr: string; parsed?: BatchResult}
-function run(name: string, command: string, args: string[]): Run {
-  const result = spawnSync(command, args, {
-    cwd: ROOT, encoding: "utf8", timeout: 300000, maxBuffer: 24 * 1024 * 1024
-  });
-  const stdout = String(result.stdout ?? ""), stderr = String(result.stderr ?? "");
-  writeFileSync(path.join(OUTPUT, "directory-" + name + ".log"),
-    ["$ " + [command, ...args].join(" "), "exit=" + result.status,
-      "STDOUT:", stdout.slice(-12000), "STDERR:", stderr.slice(-12000),
-      result.error ? String(result.error) : ""].join("\n"));
-  const run: Run = {name, status: result.status ?? -1, stdout, stderr};
-  try { run.parsed = extractBatchOutput(stdout + "\n" + stderr); }
-  catch { /* preserve full logs and report a missing protocol below */ }
-  return run;
+const ROOT=process.cwd(), OUTPUT=path.join(ROOT,"tests","output");
+const REPORT=path.join(ROOT,"test_report.md");
+const FIXTURE=path.join(ROOT,"tests","chunk_1.pdf");
+const GOLDEN="2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131";
+interface Run {name:string;status:number;stdout:string;stderr:string;parsed?:BatchResult}
+function run(name:string,command:string,args:string[]):Run {
+  const result=spawnSync(command,args,{cwd:ROOT,encoding:"utf8",timeout:300000,maxBuffer:24*1024*1024});
+  const stdout=String(result.stdout??""),stderr=String(result.stderr??"");
+  writeFileSync(path.join(OUTPUT,"directory-"+name+".log"),
+    ["$ "+[command,...args].join(" "),"exit="+result.status,"STDOUT:",stdout.slice(-12000),
+      "STDERR:",stderr.slice(-12000),result.error?String(result.error):""].join("\n"));
+  const r:Run={name,status:result.status??-1,stdout,stderr};
+  try{r.parsed=extractBatchOutput(stdout+"\n"+stderr)}catch{}
+  return r;
 }
-function checkRun(result: Run, runtime: "Node" | "JXA", converted: number, skipped: number, init: number): BatchResult {
-  if (result.status !== 0 || !result.parsed) {
-    throw new Error(result.name + " exit=" + result.status + ": " + safe(result.stderr || result.stdout, 750));
-  }
-  const batch = result.parsed;
-  if (batch.runtime !== runtime || batch.conversionCount !== converted ||
-      batch.skippedCount !== skipped || batch.wasmInitializationCount !== init ||
-      batch.failureCount !== 0 || batch.discoveredCount !== 2) {
-    throw new Error(result.name + " unexpected counters: " + JSON.stringify(batch));
-  }
-  return batch;
+function check(r:Run,runtime:"Node"|"JXA",count:number):BatchResult {
+  if(r.status!==0||!r.parsed)throw Error(r.name+" exit="+r.status+": "+safe(r.stderr||r.stdout,850));
+  const b=r.parsed;
+  if(b.runtime!==runtime||b.conversionCount!==count||b.wasmInitializationCount!==1||
+     b.failureCount!==0||b.discoveredCount!==count||b.skippedCount!==0)
+    throw Error(r.name+" unexpected result "+JSON.stringify(b));
+  return b;
 }
-function sha(file: string): string {
-  if (!existsSync(file)) throw new Error("Expected Markdown missing: " + file);
-  const contents = readFileSync(file);
-  validateMarkdownBytes(contents);
-  return createHash("sha256").update(contents).digest("hex");
+function sha(file:string):string {
+  if(!existsSync(file))throw Error("Missing Markdown "+file);
+  const data=readFileSync(file);
+  validateMarkdownBytes(data);
+  return createHash("sha256").update(data).digest("hex");
 }
-function main(): string[] {
-  mkdirSync(OUTPUT, {recursive: true});
-  if (!existsSync(FIXTURE)) throw new Error("Real PDF fixture missing");
-  rmSync(INPUT, {recursive: true, force: true});
-  mkdirSync(path.join(INPUT, "nested", "deep"), {recursive: true});
-  copyFileSync(FIXTURE, path.join(INPUT, "chunk_1.pdf"));
-  copyFileSync(FIXTURE, path.join(INPUT, "nested", "deep", "copy.PDF"));
-  writeFileSync(path.join(INPUT, "nested", "ignored.txt"), "ignore me");
-  const build = spawnSync(process.execPath, ["build.js"], {cwd:ROOT, encoding:"utf8", timeout:180000});
-  writeFileSync(path.join(OUTPUT, "directory-build.log"),
-    "exit=" + build.status + "\n" + String(build.stdout) + "\n" + String(build.stderr));
-  if (build.status !== 0) throw new Error("JXA build failed: " + safe(build.stderr, 800));
-  const bundle = path.join(ROOT, "dist", "anydoc-wasm.jxa.js");
-  if (!existsSync(bundle) || statSync(bundle).size < 100000) throw new Error("Standalone JXA bundle missing");
-
-  const nodeDir = path.join(OUTPUT, "node-markdown");
-  const jxaDir = path.join(OUTPUT, "jxa-markdown");
-  rmSync(nodeDir, {recursive:true,force:true});
-  rmSync(jxaDir, {recursive:true,force:true});
-  const nodeArgs = ["--no-install", "tsx", "src/hosts/node.ts", "--output-dir", nodeDir, INPUT];
-  const jxaArgs = ["--output-dir", jxaDir, INPUT];
-  const node = run("node", "npx", nodeArgs);
-  const jxa = run("jxa", bundle, jxaArgs);
-  checkRun(node, "Node", 2, 0, 1);
-  checkRun(jxa, "JXA", 2, 0, 1);
-
-  const relative = ["chunk_1.md", "nested/deep/copy.md"];
-  const lines = [
-    "## 真实目录镜像转换：Node 开发模式 vs JXA 执行模式", "",
-    "- 输入：包含同一真实 PDF 的两层目录，额外包含非 PDF 文件。",
-    "- 校验：两个独立目录树；WASM 每进程只初始化一次；输出目录保持层级。", "",
-    "| 对应文件 | Node SHA256 | JXA SHA256 | 一致 |", "|---|---|---|---|"
-  ];
-  for (const rel of relative) {
-    const nodeHash = sha(path.join(nodeDir, rel)), jxaHash = sha(path.join(jxaDir, rel));
-    if (nodeHash !== jxaHash || nodeHash !== GOLDEN) {
-      throw new Error("Node/JXA SHA256 mismatch or historical baseline regression for " + rel +
-        " node=" + nodeHash + " jxa=" + jxaHash);
-    }
-    lines.push("| " + rel + " | " + nodeHash + " | " + jxaHash + " | PASS |");
+function main():string[] {
+  mkdirSync(OUTPUT,{recursive:true});
+  if(!existsSync(FIXTURE))throw Error("Missing real PDF fixture");
+  const build=spawnSync(process.execPath,["build.js"],{cwd:ROOT,encoding:"utf8",timeout:180000});
+  writeFileSync(path.join(OUTPUT,"directory-build.log"),"exit="+build.status+"\n"+build.stdout+"\n"+build.stderr);
+  if(build.status!==0)throw Error("JXA build failed "+safe(build.stderr,850));
+  const bundle=path.join(ROOT,"dist","anydoc-wasm.jxa.js");
+  if(!existsSync(bundle)||statSync(bundle).size<100000)throw Error("JXA bundle missing");
+  const node=(name:string,input:string)=>run(name,"npx",["--no-install","tsx","src/hosts/node.ts",input]);
+  const jxa=(name:string,input:string)=>run(name,bundle,[input]);
+  const lines=["## 单个 PDF 与递归目录：Node / JXA SHA256 对照","",
+    "| 测试 | Node SHA256 | JXA SHA256 | 结果 |","|---|---|---|---|"];
+  const checkPair=(label:string,a:string,b:string)=>{
+    const x=sha(a),y=sha(b);
+    if(x!==y||x!==GOLDEN)throw Error(label+" SHA256 mismatch "+x+" "+y);
+    lines.push("| "+label+" | "+x+" | "+y+" | PASS |");
+  };
+  // Independent inputs: output roots are determined solely by input names, not --output-dir.
+  const nodeDir=path.join(OUTPUT,"node-fixture");
+  const jxaDir=path.join(OUTPUT,"jxa-fixture");
+  for(const dir of [nodeDir,jxaDir]){
+    for(const suffix of ["","_md","_md 2","_md 3"])rmSync(dir+suffix,{recursive:true,force:true});
+    mkdirSync(path.join(dir,"nested","deep"),{recursive:true});
+    copyFileSync(FIXTURE,path.join(dir,"chunk_1.pdf"));
+    copyFileSync(FIXTURE,path.join(dir,"nested","deep","copy.PDF"));
+    writeFileSync(path.join(dir,"nested","ignored.txt"),"not pdf");
   }
-  if (existsSync(path.join(nodeDir,"nested","ignored.md")) ||
-      existsSync(path.join(jxaDir,"nested","ignored.md"))) throw Error("Non-PDF copied into mirror");
-
-  // Repeat both modes: old Markdown files must remain byte-for-byte identical.
-  const before = relative.map(rel => [sha(path.join(nodeDir,rel)),sha(path.join(jxaDir,rel))]);
-  checkRun(run("node-rerun", "npx", nodeArgs), "Node", 0, 2, 0);
-  checkRun(run("jxa-rerun", bundle, jxaArgs), "JXA", 0, 2, 0);
-  for (let i=0;i<relative.length;i++) {
-    const rel=relative[i];
-    if (sha(path.join(nodeDir,rel))!==before[i][0] || sha(path.join(jxaDir,rel))!==before[i][1])
-      throw Error("Existing Markdown changed during skipped conversion: " + rel);
+  check(node("node-folder",nodeDir),"Node",2);
+  check(jxa("jxa-folder",jxaDir),"JXA",2);
+  for(const relative of ["chunk_1.md","nested/deep/copy.md"])
+    checkPair("folder/"+relative,path.join(nodeDir+"_md",relative),path.join(jxaDir+"_md",relative));
+  check(node("node-folder-second",nodeDir),"Node",2);
+  check(jxa("jxa-folder-second",jxaDir),"JXA",2);
+  for(const relative of ["chunk_1.md","nested/deep/copy.md"])
+    checkPair("folder 2/"+relative,path.join(nodeDir+"_md 2",relative),path.join(jxaDir+"_md 2",relative));
+  check(node("node-folder-third",nodeDir),"Node",2);
+  check(jxa("jxa-folder-third",jxaDir),"JXA",2);
+  for(const relative of ["chunk_1.md","nested/deep/copy.md"])
+    checkPair("folder 3/"+relative,path.join(nodeDir+"_md 3",relative),path.join(jxaDir+"_md 3",relative));
+  for(const dir of [nodeDir,jxaDir]){
+    if(existsSync(path.join(dir+"_md","nested","ignored.md")))throw Error("Non PDF converted");
   }
-  lines.push("", "- **PASS**：Node 与 JXA 的两个对应 Markdown SHA256 完全相同。",
-    "- **PASS**：两种模式第一次处理 2 PDF / 1 WASM 初始化，第二次跳过 2 PDF / 0 WASM 初始化。",
-    "- **PASS**：历史真实 AnyDoc SHA256 基准 " + GOLDEN,
-    "- 详细命令输出：tests/output/directory-*.log");
+  // Single PDF: first name.md, then name-1.md, then name-2.md.
+  const nodePdf=path.join(OUTPUT,"single-node.pdf"),jxaPdf=path.join(OUTPUT,"single-jxa.pdf");
+  for(const [pdf,stem] of [[nodePdf,"single-node"],[jxaPdf,"single-jxa"]] as const){
+    copyFileSync(FIXTURE,pdf);
+    for(const suffix of ["","-1","-2"])rmSync(path.join(OUTPUT,stem+suffix+".md"),{force:true});
+  }
+  for(let i=0;i<3;i++){
+    check(node("node-single-"+i,nodePdf),"Node",1);
+    check(jxa("jxa-single-"+i,jxaPdf),"JXA",1);
+    const suffix=i?"-"+i:"";
+    checkPair("single PDF "+(i+1),path.join(OUTPUT,"single-node"+suffix+".md"),
+      path.join(OUTPUT,"single-jxa"+suffix+".md"));
+  }
+  lines.push("","- PASS：目录每次递归创建新镜像根目录：_md、_md 2、_md 3。",
+    "- PASS：单个 PDF 依次创建 .md、-1.md、-2.md，不覆盖已有文件。",
+    "- PASS：Node 与 JXA 每次实际输出的 Markdown SHA256 相同，符合真实 PDF 基准。",
+    "- PASS：每次运行均只初始化一次 WASM；不接受多个独立 PDF 路径。",
+    "- 日志：tests/output/directory-*.log");
   return lines;
 }
 try {
   const lines=main();
-  writeFileSync(REPORT, "\n"+lines.join("\n")+"\n", {flag:"a"});
+  writeFileSync(REPORT,"\n"+lines.join("\n")+"\n",{flag:"a"});
   console.log(lines.join("\n"));
-} catch (error) {
+}catch(error){
   mkdirSync(OUTPUT,{recursive:true});
-  const message="FAIL: " + safe(error,1000);
-  writeFileSync(REPORT, "\n## 真实目录镜像转换\n\n- **FAIL**：" + message +
-    "\n- 详细日志：tests/output/directory-*.log\n", {flag:"a"});
+  const message="FAIL: "+safe(error,1100);
+  writeFileSync(REPORT,"\n## PDF 与目录转换\n\n- **FAIL**："+message+"\n",{flag:"a"});
   console.error(message);
   process.exitCode=1;
 }

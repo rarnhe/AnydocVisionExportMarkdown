@@ -174,12 +174,14 @@ test("build emits distinct osascript and Automator entrypoints", () => {
   assert.equal(build.includes("anydoc-wasm.jxa.js"),false);
 });
 
-test("Automator build wraps the entire engine inside the default run snippet", () => {
+test("Automator build emits the engine outside its thin run adapter", () => {
   const build=readFileSync(path.join(ROOT,"build.js"),"utf8");
-  assert.ok(build.includes("const automatorSource = `function run(input, parameters) {"));
-  assert.ok(build.includes("embeddedBundle.text"));
-  assert.ok(build.includes("return input;"));
-  assert.ok(build.includes('fs.writeFileSync(automator, automatorSource, "utf8")'));
+  assert.ok(build.includes("footer: {js: `"));
+  assert.ok(build.includes("function run(input, parameters) {"));
+  assert.ok(build.includes("JxaAnyDoc.run([posixPath])"));
+  assert.ok(!build.includes("embeddedBundle.text"));
+  assert.ok(!build.includes("const automatorSource = `function run"));
+  assert.ok(!build.includes("write: false"));
 });
 
 test("Automator JXA object harness uses executable newlines and keeps original run", () => {

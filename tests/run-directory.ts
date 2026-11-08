@@ -43,12 +43,11 @@ function main():string[] {
   if(!existsSync(automatorBundle)||statSync(automatorBundle).size<100000)
     throw Error("Automator standalone bundle missing");
   const automatorSource=readFileSync(automatorBundle,"utf8");
-  if(!automatorSource.startsWith("function run(input, parameters) {") ||
-     automatorSource.indexOf("var JxaAnyDoc") < automatorSource.indexOf("function run(input, parameters)") ||
-     automatorSource.startsWith("#!") ||
-     !automatorSource.includes("function run(input, parameters)") ||
+  const engineIndex=automatorSource.indexOf("var JxaAnyDoc");
+  const adapterIndex=automatorSource.indexOf("function run(input, parameters)");
+  if(automatorSource.startsWith("#!") || engineIndex<0 || adapterIndex<=engineIndex ||
      !automatorSource.includes("JxaAnyDoc.run([posixPath])"))
-    throw Error("Automator bundle entrypoint malformed");
+    throw Error("Automator bundle must define WASM engine before its run adapter");
   const bundle=path.join(ROOT,"dist","anydoc-wasm.osascript.js");
   if(!existsSync(bundle)||statSync(bundle).size<100000)throw Error("JXA bundle missing");
   const node=(name:string,input:string)=>run(name,"npx",["--no-install","tsx","src/hosts/node.ts",input]);

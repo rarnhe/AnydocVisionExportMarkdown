@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-08T03:49:22.929Z
+- 测试时间 (UTC): 2026-11-08T04:08:15.166Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: 19d43a7f1b279af825d0b6d7778df6cc1385f9ca
-- GitHub Run: 42444234315
+- GitHub SHA: 101294f3ab15e703559ec08bcfa6733ff70f5a10
+- GitHub Run: 42445549771
 
 ## 测试状态
 
@@ -84,29 +84,9 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
 
-## 单个 PDF 与递归目录：Node / JXA SHA256 对照
+## PDF 与目录转换
 
-| 测试 | Node SHA256 | JXA SHA256 | 结果 |
-|---|---|---|---|
-| folder/chunk_1.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| folder/nested/deep/copy.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| folder 2/chunk_1.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| folder 2/nested/deep/copy.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| folder 3/chunk_1.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| folder 3/nested/deep/copy.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| single PDF 1 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| single PDF 2 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| single PDF 3 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| Automator single PDF | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| Automator folder/root.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| Automator folder/nested/copy.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| Automator folder 2/root.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-
-- PASS：目录每次递归创建新镜像根目录：_md、_md 2、_md 3。
-- PASS：单个 PDF 依次创建 .md、-1.md、-2.md，不覆盖已有文件。
-- PASS：Node 与 JXA 每次实际输出的 Markdown SHA256 相同，符合真实 PDF 基准。
-- PASS：每次运行均只初始化一次 WASM；不接受多个独立 PDF 路径。
-- 日志：tests/output/directory-*.log
+- **FAIL**：FAIL: Error: Automator JXA Path input failed: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/automator-path-harness.js:8950812:8950925: script error: Error on line 357: SyntaxError: Invalid escape in identifier: '\' (-2700) 
 
 ## CI 最终阶段状态
 
@@ -114,7 +94,7 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 - Doctor: **SUCCESS**
 - TypeScript typecheck: **SUCCESS**
 - Unit + JXA probe: **FAILURE**
-- Node/JXA directory SHA256: **SUCCESS**
+- Node/JXA directory SHA256: **FAILURE**
 
 ## 失败阶段日志摘要
 
@@ -145,6 +125,17 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
 
+
+```
+
+### Node/JXA directory SHA256
+
+```text
+
+> anydoc-vision-export-markdown@2.0.0 test:directory
+> tsx tests/run-directory.ts
+
+FAIL: Error: Automator JXA Path input failed: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/automator-path-harness.js:8950812:8950925: script error: Error on line 357: SyntaxError: Invalid escape in identifier: '\' (-2700) 
 
 ```
 

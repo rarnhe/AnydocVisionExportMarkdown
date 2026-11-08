@@ -1,16 +1,16 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-08T00:11:53.348Z
+- 测试时间 (UTC): 2026-11-08T03:20:22.348Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: 5bc2c948204721ddce156d1f031ddaf4cc9d2401
-- GitHub Run: 42428632533
+- GitHub SHA: b0e4ff452957153d88603b8b4b7eb437534d00b8
+- GitHub Run: 42442280911
 
 ## 测试状态
 
 | 测试 | 结果 | 日志 |
 |---|---|---|
-| Node.js TypeScript 单元测试 | PASS | tests/output/unit-tests.log |
+| Node.js TypeScript 单元测试 | FAIL | tests/output/unit-tests.log |
 | JXA 原生能力探针 | PASS | tests/output/jxa.log |
 
 PASS 表示宿主进程运行且结果结构有效，不代表全部 API 均可使用。
@@ -80,7 +80,7 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 ## 失败项
 
-- 无
+- Node.js TypeScript unit tests failed; see unit-tests.log
 
 完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
 
@@ -97,6 +97,7 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 | single PDF 1 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
 | single PDF 2 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
 | single PDF 3 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| Automator single PDF | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
 
 - PASS：目录每次递归创建新镜像根目录：_md、_md 2、_md 3。
 - PASS：单个 PDF 依次创建 .md、-1.md、-2.md，不覆盖已有文件。
@@ -109,10 +110,38 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 - npm ci: **SUCCESS**
 - Doctor: **SUCCESS**
 - TypeScript typecheck: **SUCCESS**
-- Unit + JXA probe: **SUCCESS**
+- Unit + JXA probe: **FAILURE**
 - Node/JXA directory SHA256: **SUCCESS**
 
 ## 失败阶段日志摘要
 
-- 无，所有必要阶段通过。
+### Unit + JXA probe
+
+```text
+| wasm.compile_async_api | supported | API present; not invoked |
+| wasm.compile_streaming_api | unavailable | API not exposed |
+| wasm.empty_module_instance | supported | 8-byte empty WASM module instantiated |
+| wasm.exported_add_function | supported | WASM export add(20,22) = 42 |
+| wasm.instantiate_async_api | supported | API present; not invoked |
+| wasm.instantiate_streaming_api | unavailable | API not exposed |
+| wasm.memory | supported | one 64KiB page |
+| wasm.validate | supported | valid empty WASM module |
+
+## 测量限制
+
+- WASM 功能探针使用最小模块，真实 AnyDoc WASM 转换由独立测试验证。
+- WASM compile/instantiate 的异步及 streaming API 只检查存在性，不等待 Promise。
+- Foundation FS 探针尝试在临时目录写入、读取、删除文件。
+- Application.currentApplication() 仅证明当前应用代理可构造，不证明跨应用控制权。
+- CI 不主动访问 Finder 或 System Events：其他应用的 Apple Events/TCC 授权未测试。
+- AppKit 桥接不等于拥有可用图形会话；测试结果随 macOS 版本变化。
+
+## 失败项
+
+- Node.js TypeScript unit tests failed; see unit-tests.log
+
+完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
+
+
+```
 

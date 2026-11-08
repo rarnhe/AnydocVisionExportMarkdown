@@ -1,16 +1,16 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-08T04:08:15.166Z
+- 测试时间 (UTC): 2026-11-08T04:21:40.025Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: 101294f3ab15e703559ec08bcfa6733ff70f5a10
-- GitHub Run: 42445549771
+- GitHub SHA: 107e82c3daaa2c9b10a933d5c086dc28a62b7d4b
+- GitHub Run: 42446482505
 
 ## 测试状态
 
 | 测试 | 结果 | 日志 |
 |---|---|---|
-| Node.js TypeScript 单元测试 | FAIL | tests/output/unit-tests.log |
+| Node.js TypeScript 单元测试 | PASS | tests/output/unit-tests.log |
 | JXA 原生能力探针 | PASS | tests/output/jxa.log |
 
 PASS 表示宿主进程运行且结果结构有效，不代表全部 API 均可使用。
@@ -80,62 +80,44 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 ## 失败项
 
-- Node.js TypeScript unit tests failed; see unit-tests.log
+- 无
 
 完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
 
-## PDF 与目录转换
+## 单个 PDF 与递归目录：Node / JXA SHA256 对照
 
-- **FAIL**：FAIL: Error: Automator JXA Path input failed: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/automator-path-harness.js:8950812:8950925: script error: Error on line 357: SyntaxError: Invalid escape in identifier: '\' (-2700) 
+| 测试 | Node SHA256 | JXA SHA256 | 结果 |
+|---|---|---|---|
+| folder/chunk_1.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| folder/nested/deep/copy.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| folder 2/chunk_1.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| folder 2/nested/deep/copy.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| folder 3/chunk_1.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| folder 3/nested/deep/copy.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| single PDF 1 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| single PDF 2 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| single PDF 3 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| Automator single PDF | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| Automator folder/root.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| Automator folder/nested/copy.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| Automator folder 2/root.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| Automator Path object PDF | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+
+- PASS：目录每次递归创建新镜像根目录：_md、_md 2、_md 3。
+- PASS：单个 PDF 依次创建 .md、-1.md、-2.md，不覆盖已有文件。
+- PASS：Node 与 JXA 每次实际输出的 Markdown SHA256 相同，符合真实 PDF 基准。
+- PASS：每次运行均只初始化一次 WASM；不接受多个独立 PDF 路径。
+- 日志：tests/output/directory-*.log
 
 ## CI 最终阶段状态
 
 - npm ci: **SUCCESS**
 - Doctor: **SUCCESS**
 - TypeScript typecheck: **SUCCESS**
-- Unit + JXA probe: **FAILURE**
-- Node/JXA directory SHA256: **FAILURE**
+- Unit + JXA probe: **SUCCESS**
+- Node/JXA directory SHA256: **SUCCESS**
 
 ## 失败阶段日志摘要
 
-### Unit + JXA probe
-
-```text
-| wasm.compile_async_api | supported | API present; not invoked |
-| wasm.compile_streaming_api | unavailable | API not exposed |
-| wasm.empty_module_instance | supported | 8-byte empty WASM module instantiated |
-| wasm.exported_add_function | supported | WASM export add(20,22) = 42 |
-| wasm.instantiate_async_api | supported | API present; not invoked |
-| wasm.instantiate_streaming_api | unavailable | API not exposed |
-| wasm.memory | supported | one 64KiB page |
-| wasm.validate | supported | valid empty WASM module |
-
-## 测量限制
-
-- WASM 功能探针使用最小模块，真实 AnyDoc WASM 转换由独立测试验证。
-- WASM compile/instantiate 的异步及 streaming API 只检查存在性，不等待 Promise。
-- Foundation FS 探针尝试在临时目录写入、读取、删除文件。
-- Application.currentApplication() 仅证明当前应用代理可构造，不证明跨应用控制权。
-- CI 不主动访问 Finder 或 System Events：其他应用的 Apple Events/TCC 授权未测试。
-- AppKit 桥接不等于拥有可用图形会话；测试结果随 macOS 版本变化。
-
-## 失败项
-
-- Node.js TypeScript unit tests failed; see unit-tests.log
-
-完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
-
-
-```
-
-### Node/JXA directory SHA256
-
-```text
-
-> anydoc-vision-export-markdown@2.0.0 test:directory
-> tsx tests/run-directory.ts
-
-FAIL: Error: Automator JXA Path input failed: /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/automator-path-harness.js:8950812:8950925: script error: Error on line 357: SyntaxError: Invalid escape in identifier: '\' (-2700) 
-
-```
+- 无，所有必要阶段通过。
 

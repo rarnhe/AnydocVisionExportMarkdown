@@ -155,3 +155,20 @@ test("report aggregation is JavaScript-only and always runs", () => {
   assert.doesNotMatch(ci,/python3/);
   assert.match(readFileSync(path.join(ROOT,"tests/summarize-ci.cjs"),"utf8"),/STAGE_DIRECTORY/);
 });
+
+test("TypeScript uses modern bundler resolution without suppressing deprecations", () => {
+  const config=JSON.parse(readFileSync(path.join(ROOT,"tsconfig.json"),"utf8"));
+  assert.equal(config.compilerOptions.module,"Preserve");
+  assert.equal(config.compilerOptions.moduleResolution,"Bundler");
+  assert.equal(config.compilerOptions.ignoreDeprecations,undefined);
+});
+test("build emits distinct osascript and Automator entrypoints", () => {
+  const build=readFileSync(path.join(ROOT,"build.js"),"utf8");
+  assert.match(build,/anydoc-wasm\\.osascript\\.js/);
+  assert.match(build,/anydoc-wasm\\.automator\\.js/);
+  assert.match(build,/function run\\(argv\\)/);
+  assert.match(build,/function run\\(input, parameters\\)/);
+  assert.match(build,/JxaAnyDoc\\.run\\(\\[posixPath\\]\\)/);
+  assert.match(build,/return input;/);
+  assert.doesNotMatch(build,/anydoc-wasm\\.jxa\\.js/);
+});

@@ -39,7 +39,15 @@ function main():string[] {
   const build=spawnSync(process.execPath,["build.js"],{cwd:ROOT,encoding:"utf8",timeout:180000});
   writeFileSync(path.join(OUTPUT,"directory-build.log"),"exit="+build.status+"\n"+build.stdout+"\n"+build.stderr);
   if(build.status!==0)throw Error("JXA build failed "+safe(build.stderr,850));
-  const bundle=path.join(ROOT,"dist","anydoc-wasm.jxa.js");
+  const automatorBundle=path.join(ROOT,"dist","anydoc-wasm.automator.js");
+  if(!existsSync(automatorBundle)||statSync(automatorBundle).size<100000)
+    throw Error("Automator standalone bundle missing");
+  const automatorSource=readFileSync(automatorBundle,"utf8");
+  if(automatorSource.startsWith("#!") ||
+     !automatorSource.includes("function run(input, parameters)") ||
+     !automatorSource.includes("JxaAnyDoc.run([posixPath])"))
+    throw Error("Automator bundle entrypoint malformed");
+  const bundle=path.join(ROOT,"dist","anydoc-wasm.osascript.js");
   if(!existsSync(bundle)||statSync(bundle).size<100000)throw Error("JXA bundle missing");
   const node=(name:string,input:string)=>run(name,"npx",["--no-install","tsx","src/hosts/node.ts",input]);
   const jxa=(name:string,input:string)=>run(name,bundle,[input]);
@@ -88,6 +96,17 @@ function main():string[] {
     checkPair("single PDF "+(i+1),path.join(OUTPUT,"single-node"+suffix+".md"),
       path.join(OUTPUT,"single-jxa"+suffix+".md"));
   }
+  // Execute the Automator entrypoint in the actual JXA host with a POSIX
+  // path argument. Automator's Finder objects are additionally handled by
+  // the adapter in build.js; this exercises the compiled WASM runtime.
+  const autoPdf=path.join(OUTPUT,"automator-real.pdf");
+  copyFileSync(FIXTURE,autoPdf);
+  rmSync(path.join(OUTPUT,"automator-real.md"),{force:true});
+  const auto=run("automator-single","osascript",["-l","JavaScript",automatorBundle,autoPdf]);
+  if(auto.status!==0)throw Error("Automator entrypoint failed: "+safe(auto.stderr||auto.stdout,900));
+  if(sha(path.join(OUTPUT,"automator-real.md"))!==GOLDEN)
+    throw Error("Automator Markdown SHA256 regression");
+  lines.push("| Automator single PDF | "+GOLDEN+" | "+GOLDEN+" | PASS |");
   lines.push("","- PASS：目录每次递归创建新镜像根目录：_md、_md 2、_md 3。",
     "- PASS：单个 PDF 依次创建 .md、-1.md、-2.md，不覆盖已有文件。",
     "- PASS：Node 与 JXA 每次实际输出的 Markdown SHA256 相同，符合真实 PDF 基准。",

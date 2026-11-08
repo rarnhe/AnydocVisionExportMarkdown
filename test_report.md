@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-08T11:01:33.508Z
+- 测试时间 (UTC): 2026-11-08T11:13:06.052Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: f4fe1848aa1cee8ecaf3bb912dc3b91ec51f7abb
-- GitHub Run: 42473872692
+- GitHub SHA: 92f56deea6ff65ffc1827492f682a96e4b7ad107
+- GitHub Run: 42474744854
 
 ## 测试状态
 

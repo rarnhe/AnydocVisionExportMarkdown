@@ -3,7 +3,7 @@
 /*
  * Two standalone macOS JXA deliverables, sharing one TypeScript/WASM engine:
  * - osascript: CLI run(argv), executable shebang
- * - Automator: Run JavaScript run(input, parameters), paste the entire file
+ * - Automator: top-level WASM IIFE followed by run(input, parameters)
  * Build-time Node/esbuild only; no runtime Node, JSC or subprocess.
  */
 const fs = require("node:fs");
@@ -36,18 +36,13 @@ esbuild.buildSync({
   footer: {js: "\nfunction run(argv) { return JxaAnyDoc.run(argv); }\n"}
 });
 fs.chmodSync(cli, 0o755);
-// Automator's editor expects the complete pasted source to start with run(input, parameters).
-// Embed the entire self-contained esbuild IIFE INSIDE that function, not before it.
-const automatorBuild = esbuild.buildSync({
+// The self-contained WASM engine is defined at top level, outside Automator's
+// entrypoint. Automator's run() is a thin adapter for a single Finder selection.
+esbuild.buildSync({
   ...common,
-  write: false,
   outfile: automator,
-  logLevel: "silent"
-});
-const embeddedBundle = automatorBuild.outputFiles.find(file => file.path === automator);
-if (!embeddedBundle) throw new Error("Automator bundle output missing");
-const automatorSource = `function run(input, parameters) {
-  // Automator's default Run JavaScript action entrypoint.
+  footer: {js: `
+function run(input, parameters) {
   ObjC.import("Foundation");
   if (!input || input.length !== 1) {
     throw new Error("Select exactly one PDF file or one folder in Finder.");
@@ -63,8 +58,6 @@ const automatorSource = `function run(input, parameters) {
   if (typeof posixPath !== "string" || !posixPath) {
     throw new Error("Automator did not supply a valid POSIX path.");
   }
-  // Self-contained TypeScript engine and embedded AnyDoc WASM:
-` + embeddedBundle.text + `
   var response = JxaAnyDoc.run([posixPath]);
   var prefix = "ANYDOC_BATCH_JSON=";
   if (response.indexOf(prefix) !== 0) throw new Error("Unexpected AnyDoc result.");
@@ -73,11 +66,10 @@ const automatorSource = `function run(input, parameters) {
     throw new Error("AnyDoc failed converting " + result.failureCount + " PDF(s): " +
       JSON.stringify(result.failures));
   }
-  // Keep the Finder selection available to subsequent Automator actions.
   return input;
 }
-`;
-fs.writeFileSync(automator, automatorSource, "utf8");
+`}
+});
 
 console.log(JSON.stringify({
   artifacts: ["dist/anydoc-wasm.osascript.js", "dist/anydoc-wasm.automator.js"],

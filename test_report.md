@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-08T03:21:40.389Z
+- 测试时间 (UTC): 2026-11-08T03:49:22.929Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: 8756e7152fecbbcdeb30abdff4ea3faa41a57b12
-- GitHub Run: 42442379165
+- GitHub SHA: 19d43a7f1b279af825d0b6d7778df6cc1385f9ca
+- GitHub Run: 42444234315
 
 ## 测试状态
 
@@ -98,6 +98,9 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 | single PDF 2 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
 | single PDF 3 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
 | Automator single PDF | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| Automator folder/root.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| Automator folder/nested/copy.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| Automator folder 2/root.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
 
 - PASS：目录每次递归创建新镜像根目录：_md、_md 2、_md 3。
 - PASS：单个 PDF 依次创建 .md、-1.md、-2.md，不覆盖已有文件。

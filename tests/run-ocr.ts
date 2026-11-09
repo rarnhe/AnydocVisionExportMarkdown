@@ -27,7 +27,7 @@ try {
   rmSync(folder+"_md",{recursive:true,force:true});
   mkdirSync(folder,{recursive:true});
   copyFileSync(source,single);copyFileSync(source,path.join(folder,"origin.pdf"));
-  for(const name of ["chunk_1.pdf","chunk_2.docx","chunk_3.pptx","chunk_1.xlsx"]){
+  for(const name of ["chunk_1.pdf","chunk_2.docx","chunk_3.pptx","chunk_4.xlsx"]){
     const src=path.join(root,"tests",name);
     if(!existsSync(src))throw Error("Missing mixed folder fixture: "+src);
     copyFileSync(src,path.join(folder,name));
@@ -36,7 +36,7 @@ try {
   const singleMd=invoke("single",single);
   invoke("folder",folder,5);
   const folderMd=path.join(folder+"_md","origin.md");
-  for(const name of ["chunk_1.md","chunk_2.docx.md","chunk_3.pptx.md","chunk_1.xlsx.md"]){
+  for(const name of ["chunk_1.md","chunk_2.md","chunk_3.md","chunk_4.md"]){
     const file=path.join(folder+"_md",name);
     if(!existsSync(file)||readFileSync(file).length<30)throw Error("Missing/short mixed folder Markdown: "+name);
   }

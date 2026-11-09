@@ -70,6 +70,7 @@ try {
   if(existsSync(out))renameSync(out,savedOutput);
   mkdirSync(out,{recursive:true});
   let nodeDirect:string|undefined,jxaDirect:string|undefined;
+  let directNodeHash="",directJxaHash="";
   try {
     const before=new Set<string>();
     for(let n=1;n<=10;n++){
@@ -91,8 +92,10 @@ try {
     for(const name of ["chunk_1.md","chunk_2.md","chunk_3.md","chunk_4.md","origin.md"]){
       const nodeFile=path.join(nodeDirect,name),jxaFile=path.join(jxaDirect,name);
       if(!existsSync(nodeFile)||!existsSync(jxaFile))throw Error("Direct tests/ output missing "+name);
-      if(sha(nodeFile)!==sha(jxaFile)||sha(nodeFile)!==sha(path.join(nodeFolderMd,name)))
+      const nodeHash=sha(nodeFile),jxaHash=sha(jxaFile);
+      if(nodeHash!==jxaHash||nodeHash!==sha(path.join(nodeFolderMd,name)))
         throw Error("Direct tests/ Node/JXA/copied-folder SHA256 mismatch: "+name);
+      if(name==="origin.md"){directNodeHash=nodeHash;directJxaHash=jxaHash;}
     }
   } finally {
     if(nodeDirect)rmSync(nodeDirect,{recursive:true,force:true});
@@ -107,7 +110,7 @@ try {
     "| Input mode | Node SHA256 | JXA SHA256 | Result |","|---|---|---|---|",
     "| Single PDF | "+digest+" | "+sha(jxaSingleMd)+" | PASS |",
     "| Recursive folder / origin.pdf | "+sha(path.join(nodeFolderMd,"origin.md"))+" | "+sha(path.join(jxaFolderMd,"origin.md"))+" | PASS |",
-    "| Direct tests/ recursive folder / origin.pdf | "+sha(path.join(nodeDirect!,"origin.md"))+" | "+sha(path.join(jxaDirect!,"origin.md"))+" | PASS |",
+    "| Direct tests/ recursive folder / origin.pdf | "+directNodeHash+" | "+directJxaHash+" | PASS |",
     "| All five files in recursive folders | matching per-file hashes | matching per-file hashes | PASS |",
     "","- Node delegates only native PDFKit/Vision work to an isolated JXA helper; Node and JXA each initialize their own AnyDoc WASM singleton once.",
     "- OCR metadata is retained in ANYDOC_BATCH_JSON as code/pages/pageCount.",

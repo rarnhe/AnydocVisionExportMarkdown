@@ -4,7 +4,7 @@ import {copyFileSync,existsSync,mkdirSync,readFileSync,rmSync,writeFileSync} fro
 import path from "node:path";
 import {extractBatchOutput,validateMarkdownBytes} from "./test-utils";
 const root=process.cwd(),out=path.join(root,"tests/output"),fixture=path.join(root,"tests");
-const formats=["pdf","docx","pptx","xlsx"] as const;
+const fixtures=[{name:"chunk_1.pdf",type:"pdf"},{name:"chunk_2.docx",type:"docx"},{name:"chunk_3.pptx",type:"pptx"},{name:"chunk_1.xlsx",type:"xlsx"}] as const;
 function digest(file:string):string {const bytes=readFileSync(file);validateMarkdownBytes(bytes);return createHash("sha256").update(bytes).digest("hex");}
 function invoke(runtime:"Node"|"JXA",label:string,input:string,expected:number){
  const command=runtime==="Node"?"npx":"osascript";
@@ -22,15 +22,15 @@ mkdirSync(out,{recursive:true});
 try{
  const build=spawnSync(process.execPath,["build.js"],{cwd:root,encoding:"utf8",timeout:180000});
  if(build.status!==0)throw Error("build failed: "+build.stderr);
- for(const ext of formats)if(!existsSync(path.join(fixture,"chunk_1."+ext)))
-   throw Error("Missing Office/PDF fixture "+ext);
+ for(const item of fixtures)if(!existsSync(path.join(fixture,item.name)))
+   throw Error("Missing document fixture "+item.name);
  const report=["","## Document format SHA256 parity (Node / JXA)","",
    "| Source format | Node SHA256 | JXA SHA256 | Result |","|---|---|---|---|"];
- for(const ext of formats){
+ for(const {name:fixtureName,type:ext} of fixtures){
    const name="format-"+ext,dir=path.join(out,name);
    rmSync(dir,{recursive:true,force:true});mkdirSync(dir,{recursive:true});
    const input=path.join(dir,"input."+ext);
-   copyFileSync(path.join(fixture,"chunk_1."+ext),input);
+   copyFileSync(path.join(fixture,fixtureName),input);
    invoke("Node",name+"-node",input,1);
    const nodeMd=path.join(dir,ext==="pdf"?"input.md":"input."+ext+".md");
    const a=digest(nodeMd);rmSync(nodeMd,{force:true});
@@ -43,11 +43,11 @@ try{
  const folder=path.join(out,"formats-folder");
  for(const d of [folder,folder+"_md",folder+"_md 2"])rmSync(d,{recursive:true,force:true});
  mkdirSync(folder,{recursive:true});
- for(const ext of formats)copyFileSync(path.join(fixture,"chunk_1."+ext),path.join(folder,"chunk_1."+ext));
+ for(const item of fixtures)copyFileSync(path.join(fixture,item.name),path.join(folder,item.name));
  invoke("Node","folder-node",folder,4);
  invoke("JXA","folder-jxa",folder,4);
- for(const ext of formats){
-   const relative=ext==="pdf"?"chunk_1.md":"chunk_1."+ext+".md";
+ for(const {name:fixtureName,type:ext} of fixtures){
+   const relative=ext==="pdf"?fixtureName.replace(/\.pdf$/i,".md"):fixtureName+".md";
    const a=digest(path.join(folder+"_md",relative));
    const b=digest(path.join(folder+"_md 2",relative));
    if(a!==b)throw Error("Folder Node/JXA SHA256 mismatch "+ext);

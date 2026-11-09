@@ -1,16 +1,16 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-09T04:39:26.626Z
+- 测试时间 (UTC): 2026-11-09T05:45:33.049Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: 2286996d55c17a28a77179ada48e0fcd9882523f
-- GitHub Run: 42562933854
+- GitHub SHA: c70e75e6f0de256abb6baff6e0f932f9594942ac
+- GitHub Run: 42568638704
 
 ## 测试状态
 
 | 测试 | 结果 | 日志 |
 |---|---|---|
-| Node.js TypeScript 单元测试 | PASS | tests/output/unit-tests.log |
+| Node.js TypeScript 单元测试 | FAIL | tests/output/unit-tests.log |
 | JXA 原生能力探针 | PASS | tests/output/jxa.log |
 
 PASS 表示宿主进程运行且结果结构有效，不代表全部 API 均可使用。
@@ -80,19 +80,13 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 ## 失败项
 
-- 无
+- Node.js TypeScript unit tests failed; see unit-tests.log
 
 完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
 
-## Mixed PDF Vision OCR recovery (tests/origin.pdf)
+## Mixed PDF OCR recovery
 
-| Mode | Markdown SHA256 | Characters | Result |
-|---|---|---:|---|
-| PDF | 193519e8d5697571cd888d729231b2ae5ce92a287a37f73d3150fc97367b4b84 | 47000 | PASS |
-| Directory (5 mixed files) | 193519e8d5697571cd888d729231b2ae5ce92a287a37f73d3150fc97367b4b84 | 47000 | PASS |
-
-- Native PDFKit split + Vision OCR; both modes have identical output.
-- WASM singleton initialized once per execution; source fixture unchanged.
+- FAIL: Error: tests-directory bad result {"schema":1,"runtime":"JXA","mode":"single-process","wasmInitializationCount":1,"discoveredCount":11,"conversionCount":11,"conversions":[{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/chunk_1.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/chunk_1.md","markdownCharacters":15965},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/chunk_2.docx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/chunk_2.md","markdownCharacters":485},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/chunk_3.pptx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/chunk_3.md","markdownCharacters":189},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/chunk_4.xlsx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/chunk_4.md","markdownCharacters":613},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/origin.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/origin.md","markdownCharacters":47000},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-directory/chunk_1.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-directory/chunk_1.md","markdownCharacters":15965},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-directory/chunk_2.docx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-directory/chunk_2.md","markdownCharacters":485},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-directory/chunk_3.pptx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-directory/chunk_3.md","markdownCharacters":189},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-directory/chunk_4.xlsx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-directory/chunk_4.md","markdownCharacters":613},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-directory/origin.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-directory/origin.md","markdownCharacters":47000},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-origin.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-origin.md","markdownCharacters":47000}],"skippedCount":0,"skipped":[],"failureCount":0,"failures":[]}
 
 ## Document format SHA256 parity (Node / JXA)
 
@@ -102,10 +96,10 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 | docx | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | PASS |
 | pptx | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | PASS |
 | xlsx | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | PASS |
-| folder/pdf | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
-| folder/docx | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | PASS |
-| folder/pptx | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | PASS |
-| folder/xlsx | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | PASS |
+| folder/pdf (also matches single file) | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| folder/docx (also matches single file) | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | PASS |
+| folder/pptx (also matches single file) | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | PASS |
+| folder/xlsx (also matches single file) | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | PASS |
 
 ## 单个 PDF 与递归目录：Node / JXA SHA256 对照
 
@@ -138,12 +132,68 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 - PDF/Office format SHA256: **SUCCESS**
 - Doctor: **SUCCESS**
 - TypeScript typecheck: **SUCCESS**
-- Unit + JXA probe: **SUCCESS**
+- Unit + JXA probe: **FAILURE**
 - Node/JXA directory SHA256: **SUCCESS**
 - OCR metadata unit: **SUCCESS**
-- Real PDFKit/Vision OCR file and directory: **SUCCESS**
+- Real PDFKit/Vision OCR file and directory: **FAILURE**
 
 ## 失败阶段日志摘要
 
-- 无，所有必要阶段通过。
+### Unit + JXA probe
+
+```text
+| wasm.compile_async_api | supported | API present; not invoked |
+| wasm.compile_streaming_api | unavailable | API not exposed |
+| wasm.empty_module_instance | supported | 8-byte empty WASM module instantiated |
+| wasm.exported_add_function | supported | WASM export add(20,22) = 42 |
+| wasm.instantiate_async_api | supported | API present; not invoked |
+| wasm.instantiate_streaming_api | unavailable | API not exposed |
+| wasm.memory | supported | one 64KiB page |
+| wasm.validate | supported | valid empty WASM module |
+
+## 测量限制
+
+- WASM 功能探针使用最小模块，真实 AnyDoc WASM 转换由独立测试验证。
+- WASM compile/instantiate 的异步及 streaming API 只检查存在性，不等待 Promise。
+- Foundation FS 探针尝试在临时目录写入、读取、删除文件。
+- Application.currentApplication() 仅证明当前应用代理可构造，不证明跨应用控制权。
+- CI 不主动访问 Finder 或 System Events：其他应用的 Apple Events/TCC 授权未测试。
+- AppKit 桥接不等于拥有可用图形会话；测试结果随 macOS 版本变化。
+
+## 失败项
+
+- Node.js TypeScript unit tests failed; see unit-tests.log
+
+完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
+
+
+```
+
+#### Node unit test details
+
+```text
+$ npm run test:unit
+exit=1
+STDOUT:
+
+> anydoc-vision-export-markdown@2.0.0 test:unit
+> tsx --test tests/unit.test.ts
+
+✔ probe parser extracts JSON after diagnostic output (1.870542ms)
+✔ probe parser skips malformed marker and accepts a later valid marker (0.221042ms)
+✔ probe parser rejects missing marker and wrong schema (0.314083ms)
+✔ Markdown report escaping handles pipes and newlines (0.213334ms)
+✔ batch parser accepts JXA and Node results (0.3
+```
+
+### Real PDFKit/Vision OCR file and directory
+
+```text
+
+> anydoc-vision-export-markdown@2.0.0 test:ocr
+> tsx tests/run-ocr.ts
+
+Error: tests-directory bad result {"schema":1,"runtime":"JXA","mode":"single-process","wasmInitializationCount":1,"discoveredCount":11,"conversionCount":11,"conversions":[{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/chunk_1.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/chunk_1.md","markdownCharacters":15965},{"input":"/Users/runner/work/AnydocVisionExpo
+
+```
 

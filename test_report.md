@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-09T02:49:07.292Z
+- 测试时间 (UTC): 2026-11-09T03:42:15.084Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: 23dec3c9cfc7e502ffd5496cb013888637cdcd71
-- GitHub Run: 42552967596
+- GitHub SHA: 2ed407476c4cdfae6e47c8966702f64c97fe8c38
+- GitHub Run: 42557424658
 
 ## 测试状态
 
@@ -84,6 +84,16 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
 
+## Mixed PDF Vision OCR recovery (tests2/origin.pdf)
+
+| Mode | Markdown SHA256 | Characters | Result |
+|---|---|---:|---|
+| PDF | 193519e8d5697571cd888d729231b2ae5ce92a287a37f73d3150fc97367b4b84 | 47000 | PASS |
+| Directory | 193519e8d5697571cd888d729231b2ae5ce92a287a37f73d3150fc97367b4b84 | 47000 | PASS |
+
+- Native PDFKit split + Vision OCR; both modes have identical output.
+- WASM singleton initialized once per execution; source fixture unchanged.
+
 ## 单个 PDF 与递归目录：Node / JXA SHA256 对照
 
 | 测试 | Node SHA256 | JXA SHA256 | 结果 |
@@ -113,11 +123,22 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 - npm ci: **SUCCESS**
 - Doctor: **SUCCESS**
-- TypeScript typecheck: **SUCCESS**
+- TypeScript typecheck: **FAILURE**
 - Unit + JXA probe: **SUCCESS**
 - Node/JXA directory SHA256: **SUCCESS**
+- OCR metadata unit: **SUCCESS**
+- Real PDFKit/Vision OCR file and directory: **SUCCESS**
 
 ## 失败阶段日志摘要
 
-- 无，所有必要阶段通过。
+### TypeScript typecheck
+
+```text
+
+> anydoc-vision-export-markdown@2.0.0 typecheck
+> tsc --noEmit
+
+tests/run-ocr.ts(17,10): error TS2571: Object is of type 'unknown'.
+
+```
 

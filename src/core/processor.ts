@@ -61,7 +61,7 @@ function discoverDocuments(root: string, port: FilePort): string[] {
           entry.name.includes("/")) throw new Error("Unsafe directory entry: " + entry.name);
       const full = join(directory, entry.name);
       if (entry.kind === "directory") stack.push(full);
-      else if (entry.kind === "file" && /SUPPORTED.test(entry.name)) files.push(full);
+      else if (entry.kind === "file" && SUPPORTED.test(entry.name)) files.push(full);
     }
   }
   return files.sort();

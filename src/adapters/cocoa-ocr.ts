@@ -63,7 +63,7 @@ export function recoverWithCocoaPdfKit(
         const png=bitmap.representationUsingTypeProperties($.NSPNGFileType,$.NSDictionary.dictionary);
         const path=temp+"/page-"+task.start+".png";
         write(png,path);
-        chunks.push("<!-- page "+task.start+" (Vision OCR) -->\n\n"+ocrImage(path));
+        chunks.push(ocrImage(path));
       }else{
         const sub=$.PDFDocument.alloc.init;
         for(let page=task.start;page<=task.end;page++){
@@ -77,7 +77,7 @@ export function recoverWithCocoaPdfKit(
         const data=$.NSData.dataWithContentsOfFile(ns(path));
         if(!data)throw new Error("Cannot read temporary PDF "+path);
         const bytes=decodeBase64(str(data.base64EncodedStringWithOptions(0)));
-        chunks.push("<!-- pages "+task.start+"-"+task.end+" (AnyDoc) -->\n\n"+engine.convertPdf(bytes));
+        chunks.push(engine.convertPdf(bytes));
       }
     }
     return chunks.join("\n\n---\n\n")+"\n";

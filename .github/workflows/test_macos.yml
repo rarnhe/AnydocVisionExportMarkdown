@@ -48,18 +48,6 @@ jobs:
           set -o pipefail
           npm ci 2>&1 | tee tests/output/npm-install.log
 
-      - name: Generate Office fixtures from PDFKit text when absent
-        id: fixtures
-        if: always()
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          if [ ! -f tests/chunk_1.docx ] || [ ! -f tests/chunk_1.pptx ] || [ ! -f tests/chunk_1.xlsx ]; then
-            node tests/generate-fixtures.cjs 2>&1 | tee tests/output/fixtures.log
-          else
-            echo "Committed Office fixtures already present" | tee tests/output/fixtures.log
-          fi
-
       - name: Doctor
         id: doctor
         if: always()
@@ -120,7 +108,6 @@ jobs:
         if: always()
         env:
           STAGE_DEPS: ${{ steps.deps.outcome }}
-          STAGE_FIXTURES: ${{ steps.fixtures.outcome }}
           STAGE_FORMATS: ${{ steps.formats.outcome }}
           STAGE_DOCTOR: ${{ steps.doctor.outcome }}
           STAGE_TYPES: ${{ steps.types.outcome }}
@@ -153,7 +140,7 @@ jobs:
           if [ ! -f test_report.md ]; then
             printf '# macOS JXA 报告\n\n- FAIL: missing report\n' > test_report.md
           fi
-          git add -- test_report.md tests/chunk_1.docx tests/chunk_1.pptx tests/chunk_1.xlsx
+          git add -- test_report.md
           if git diff --cached --quiet; then
             echo "Report unchanged."
             exit 0
@@ -167,7 +154,6 @@ jobs:
         if: always()
         run: |
           test "${{ steps.deps.outcome }}" = success
-          test "${{ steps.fixtures.outcome }}" = success
           test "${{ steps.formats.outcome }}" = success
           test "${{ steps.doctor.outcome }}" = success
           test "${{ steps.types.outcome }}" = success

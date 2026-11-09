@@ -124,7 +124,7 @@ test("single PDF output numbering starts at -1 and never overwrites", async () =
     assert.equal(planConversions([pdf],port)[0].output,path.join(dir,"paper-2.md"));
     assert.throws(()=>parseArguments([pdf,pdf]),/exactly one input/);
     assert.throws(()=>parseArguments(["--output-dir",dir]),/exactly one input/);
-    assert.throws(()=>planConversions([path.join(dir,"missing.pdf")],port),/Expected a PDF file or existing directory/);
+    assert.throws(()=>planConversions([path.join(dir,"missing.pdf")],port),/Expected a supported document file or existing directory/);
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
 test("recursive folder creates a fresh _md tree on each run, suffix starts at space 2", async () => {
@@ -192,25 +192,37 @@ test("Automator JXA object harness uses executable newlines and keeps original r
   assert.ok(!runner.includes('function run(argv) { return __automatorOriginalRun'));
 });
 
-test("Office files use distinct Markdown output names in mixed folders", async () => {
+test("unique PDF and Office stems produce clean .md outputs in file and folder mode", async () => {
   const {planConversions}=await import("../src/core/processor");
   const {createNodeFilePort}=await import("../src/adapters/node-fs");
   const {mkdtempSync,writeFileSync,rmSync}=await import("node:fs");
   const dir=mkdtempSync(path.join(TESTS,"temp-mixed-"));
+  const names=["chunk_1.pdf","chunk_2.docx","chunk_3.pptx","chunk_4.xlsx"];
   try {
-    for(const ext of ["pdf","docx","pptx","xlsx"])writeFileSync(path.join(dir,"same."+ext),"fixture");
+    for(const name of names)writeFileSync(path.join(dir,name),"fixture");
     const port=createNodeFilePort();
     const planned=planConversions([dir],port).map(x=>x.output);
     assert.equal(planned.length,4);
-    assert.deepEqual(new Set(planned).size,4);
-    assert.ok(planned.includes(dir+"_md/same.md"));
-    for(const ext of ["docx","pptx","xlsx"]){
-      assert.ok(planned.includes(dir+"_md/same."+ext+".md"));
-      assert.equal(planConversions([path.join(dir,"same."+ext)],port)[0].output,
-        path.join(dir,"same."+ext+".md"));
+    assert.equal(new Set(planned).size,4);
+    for(const name of names){
+      const expected=path.join(dir+"_md",name.replace(/\\.[^.]+$/,".md"));
+      assert.ok(planned.includes(expected));
+      assert.equal(planConversions([path.join(dir,name)],port)[0].output,
+        path.join(dir,name.replace(/\\.[^.]+$/,".md")));
     }
   } finally {
     rmSync(dir,{recursive:true,force:true});
     rmSync(dir+"_md",{recursive:true,force:true});
   }
+});
+test("same stem across formats is rejected in directory mode", async () => {
+  const {planConversions}=await import("../src/core/processor");
+  const {createNodeFilePort}=await import("../src/adapters/node-fs");
+  const {mkdtempSync,writeFileSync,rmSync}=await import("node:fs");
+  const dir=mkdtempSync(path.join(TESTS,"temp-collision-"));
+  try {
+    writeFileSync(path.join(dir,"same.pdf"),"pdf");
+    writeFileSync(path.join(dir,"same.docx"),"docx");
+    assert.throws(()=>planConversions([dir],createNodeFilePort()),/Markdown output collision/);
+  } finally {rmSync(dir,{recursive:true,force:true});}
 });

@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-09T04:06:50.371Z
+- 测试时间 (UTC): 2026-11-09T04:39:26.626Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: cbc45cef23ad363dece3b57712c4cb237ee0b2d2
-- GitHub Run: 42559521237
+- GitHub SHA: 2286996d55c17a28a77179ada48e0fcd9882523f
+- GitHub Run: 42562933854
 
 ## 测试状态
 
@@ -135,7 +135,6 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 ## CI 最终阶段状态
 
 - npm ci: **SUCCESS**
-- Office fixtures: **SUCCESS**
 - PDF/Office format SHA256: **SUCCESS**
 - Doctor: **SUCCESS**
 - TypeScript typecheck: **SUCCESS**

@@ -114,14 +114,14 @@ export function processInputs(
 ): ProcessingResult {
   const tasks = planConversions(argv,port);
   const conversions: ConversionResult[] = [];
-  const failures: Array<{input:string;message:string}> = [];
+  const failures: Array<{input:string;message:string;ocrRecovery?:{code:"needsOcr";pages:number[];pageCount:number}}> = [];
   // Both modes create new destinations; no old Markdown is silently skipped.
   if (tasks.length) {
     const engine = getAnyDocSingleton(assets);
     for (const task of tasks) {
+      let ocrRecovery:ReturnType<typeof parseNeedsOcr>=null;
       try {
         let markdown:string;
-        let ocrRecovery:ReturnType<typeof parseNeedsOcr>=null;
         try {
           const type=task.input.toLowerCase().split(".").pop() as "pdf"|"docx"|"pptx"|"xlsx";
           markdown=engine.convert(port.readBytes(task.input),type);
@@ -136,7 +136,8 @@ export function processInputs(
         conversions.push({input:task.input,output:task.output,markdownCharacters:markdown.length,
           ...(ocrRecovery?{ocrRecovery:{code:"needsOcr" as const,pages:ocrRecovery.pages,pageCount:ocrRecovery.pageCount}}:{})});
       } catch(error) {
-        failures.push({input:task.input,message:String(error)});
+        failures.push({input:task.input,message:String(error),
+          ...(ocrRecovery?{ocrRecovery:{code:"needsOcr" as const,pages:ocrRecovery.pages,pageCount:ocrRecovery.pageCount}}:{})});
       }
     }
   }

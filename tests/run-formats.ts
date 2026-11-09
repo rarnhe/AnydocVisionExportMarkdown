@@ -4,7 +4,7 @@ import {copyFileSync,existsSync,mkdirSync,readFileSync,rmSync,writeFileSync} fro
 import path from "node:path";
 import {extractBatchOutput,validateMarkdownBytes} from "./test-utils";
 const root=process.cwd(),out=path.join(root,"tests/output"),fixture=path.join(root,"tests");
-const fixtures=[{name:"chunk_1.pdf",type:"pdf"},{name:"chunk_2.docx",type:"docx"},{name:"chunk_3.pptx",type:"pptx"},{name:"chunk_1.xlsx",type:"xlsx"}] as const;
+const fixtures=[{name:"chunk_1.pdf",type:"pdf"},{name:"chunk_2.docx",type:"docx"},{name:"chunk_3.pptx",type:"pptx"},{name:"chunk_4.xlsx",type:"xlsx"}] as const;
 function digest(file:string):string {const bytes=readFileSync(file);validateMarkdownBytes(bytes);return createHash("sha256").update(bytes).digest("hex");}
 function invoke(runtime:"Node"|"JXA",label:string,input:string,expected:number){
  const command=runtime==="Node"?"npx":"osascript";
@@ -32,7 +32,7 @@ try{
    const input=path.join(dir,"input."+ext);
    copyFileSync(path.join(fixture,fixtureName),input);
    invoke("Node",name+"-node",input,1);
-   const nodeMd=path.join(dir,ext==="pdf"?"input.md":"input."+ext+".md");
+   const nodeMd=path.join(dir,"input.md");
    const a=digest(nodeMd);rmSync(nodeMd,{force:true});
    invoke("JXA",name+"-jxa",input,1);
    const b=digest(nodeMd);
@@ -47,7 +47,7 @@ try{
  invoke("Node","folder-node",folder,4);
  invoke("JXA","folder-jxa",folder,4);
  for(const {name:fixtureName,type:ext} of fixtures){
-   const relative=ext==="pdf"?fixtureName.replace(/\.pdf$/i,".md"):fixtureName+".md";
+   const relative=fixtureName.replace(/\.(pdf|docx|pptx|xlsx)$/i,".md");
    const a=digest(path.join(folder+"_md",relative));
    const b=digest(path.join(folder+"_md 2",relative));
    if(a!==b)throw Error("Folder Node/JXA SHA256 mismatch "+ext);

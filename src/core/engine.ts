@@ -37,17 +37,22 @@ export class AnyDocEngine {
     this.convertFn = convert;
   }
 
-  convertPdf(bytes: Uint8Array): string {
-    if (bytes.length < 5 || String.fromCharCode(...bytes.subarray(0, 5)) !== "%PDF-") {
+  convert(bytes: Uint8Array, type: "pdf" | "docx" | "pptx" | "xlsx"): string {
+    if (type === "pdf" && (bytes.length < 5 || String.fromCharCode(...bytes.subarray(0, 5)) !== "%PDF-")) {
       throw new Error("Input is not a PDF");
     }
-    const result = this.convertFn(bytes, "pdf");
+    if (type !== "pdf" && (bytes.length < 4 || bytes[0] !== 0x50 || bytes[1] !== 0x4b)) {
+      throw new Error("Input is not an Office ZIP document");
+    }
+    const result = this.convertFn(bytes, type);
     const markdown = typeof result === "string"
       ? result
       : new TextDecoder("utf-8").decode(new Uint8Array(result));
     if (markdown.trim().length < 30) throw new Error("Converted Markdown empty or too short");
     return markdown;
   }
+
+  convertPdf(bytes: Uint8Array): string { return this.convert(bytes, "pdf"); }
 }
 
 let singleton: AnyDocEngine | undefined;

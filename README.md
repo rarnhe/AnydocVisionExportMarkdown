@@ -86,7 +86,7 @@ src/
 │   ├── node-fs.ts        # Node FS
 │   └── cocoa-fs.ts       # JXA Foundation
 ├── hosts/
-│   ├── node.ts           # Node/tsx 开发入口
+│   ├── node.ts           # Node/tsx 入口；复杂 PDF 通过 JXA 调用原生 Vision
 │   ├── node-assets.ts    # Node 构建时 WASM / Glue 资产加载
 │   └── jxa.ts            # JXA 交付入口
 └── shared/               # base64、运行时 polyfills
@@ -135,7 +135,7 @@ macOS CI 除了直接以 `osascript` 执行 Automator 脚本外，还通过临�
 ## PDF / Office 混合输入与 OCR 恢复
 
 - 单文件输入：`*.pdf`、`*.docx`、`*.pptx`、`*.xlsx`；文件夹输入递归扫描上述四类文件。
-- PDF 首先使用 AnyDoc WASM；仅在返回结构化 `needsOcr` 错误时，JXA 使用原生 PDFKit 拆分文本页及 macOS Vision OCR 识别扫描页，按原始页码合并后清理临时目录。Node 开发模式目前不提供 Vision OCR 回退。
+- PDF 首先使用一次 AnyDoc WASM；仅在返回 `needsOcr` 时，根据错误中的 `code`、`pages`、`pageCount`（也兼容 `pages 12, 17, 20-56 of 56 need OCR` 文本形式）进入恢复流程。\n- JXA 使用原生 PDFKit 将连续文本页切成 PDF、将扫描页渲染为图像，再分别调用 AnyDoc 和 macOS Vision OCR，最后按原始页码合并 Markdown 并清理临时文件。\n- Node 开发模式遇到混合 PDF 时，将 PDFKit/Vision 原生工作委托给独立 `osascript` JXA 进程；Node 自身的 AnyDoc WASM 单例仍只初始化一次。Node 和 JXA 均需在 macOS 上运行；Node 回退前需先 `npm run build`。
 - PDF、DOCX、PPTX、XLSX 统一输出原始文件名去掉扩展名后的 `name.md`。如果同一文件夹存在不同格式但同名的文件，目录模式会明确报出输出名称冲突，不会静默覆盖。文件夹输出 `folder_md`、`folder_md 2` 等镜像目录。
 - `tests/chunk_1.pdf` 为纯文本基准；`tests/origin.pdf` 为 56 页混合 OCR 基准；`tests/chunk_2.docx`、`tests/chunk_3.pptx`、`tests/chunk_4.xlsx` 为已提交到仓库的 Office 格式基准；CI 不再动态生成或回写 Office 测试文件。
-- CI 验证四种文件格式的单文件及文件夹 Node/JXA SHA256 一致性，另独立验证混合 PDF 的 JXA 单文件/文件夹一致性；结果写入 `test_report.md`。
+- CI 验证四种文件格式的单文件及文件夹 Node/JXA SHA256 一致性，并验证混合 PDF 在 Node/JXA 的单文件、混合文件夹及直接递归 `tests/` 输入下 SHA256 一致；同时断言 `ANYDOC_BATCH_JSON` 保留 OCR 的 `code/pages/pageCount`。结果写入 `test_report.md`。

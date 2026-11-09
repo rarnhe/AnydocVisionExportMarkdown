@@ -41,9 +41,6 @@ export class AnyDocEngine {
     if (type === "pdf" && (bytes.length < 5 || String.fromCharCode(...bytes.subarray(0, 5)) !== "%PDF-")) {
       throw new Error("Input is not a PDF");
     }
-    if (type !== "pdf" && (bytes.length < 4 || bytes[0] !== 0x50 || bytes[1] !== 0x4b)) {
-      throw new Error("Input is not an Office ZIP document");
-    }
     const result = this.convertFn(bytes, type);
     const markdown = typeof result === "string"
       ? result

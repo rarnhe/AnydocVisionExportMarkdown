@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-09T03:42:15.084Z
+- 测试时间 (UTC): 2026-11-09T04:06:50.371Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: 2ed407476c4cdfae6e47c8966702f64c97fe8c38
-- GitHub Run: 42557424658
+- GitHub SHA: cbc45cef23ad363dece3b57712c4cb237ee0b2d2
+- GitHub Run: 42559521237
 
 ## 测试状态
 
@@ -84,15 +84,28 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
 
-## Mixed PDF Vision OCR recovery (tests2/origin.pdf)
+## Mixed PDF Vision OCR recovery (tests/origin.pdf)
 
 | Mode | Markdown SHA256 | Characters | Result |
 |---|---|---:|---|
 | PDF | 193519e8d5697571cd888d729231b2ae5ce92a287a37f73d3150fc97367b4b84 | 47000 | PASS |
-| Directory | 193519e8d5697571cd888d729231b2ae5ce92a287a37f73d3150fc97367b4b84 | 47000 | PASS |
+| Directory (5 mixed files) | 193519e8d5697571cd888d729231b2ae5ce92a287a37f73d3150fc97367b4b84 | 47000 | PASS |
 
 - Native PDFKit split + Vision OCR; both modes have identical output.
 - WASM singleton initialized once per execution; source fixture unchanged.
+
+## Document format SHA256 parity (Node / JXA)
+
+| Source format | Node SHA256 | JXA SHA256 | Result |
+|---|---|---|---|
+| pdf | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| docx | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | PASS |
+| pptx | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | PASS |
+| xlsx | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | PASS |
+| folder/pdf | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| folder/docx | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | PASS |
+| folder/pptx | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | PASS |
+| folder/xlsx | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | PASS |
 
 ## 单个 PDF 与递归目录：Node / JXA SHA256 对照
 
@@ -122,8 +135,10 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 ## CI 最终阶段状态
 
 - npm ci: **SUCCESS**
+- Office fixtures: **SUCCESS**
+- PDF/Office format SHA256: **SUCCESS**
 - Doctor: **SUCCESS**
-- TypeScript typecheck: **FAILURE**
+- TypeScript typecheck: **SUCCESS**
 - Unit + JXA probe: **SUCCESS**
 - Node/JXA directory SHA256: **SUCCESS**
 - OCR metadata unit: **SUCCESS**
@@ -131,14 +146,5 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 ## 失败阶段日志摘要
 
-### TypeScript typecheck
-
-```text
-
-> anydoc-vision-export-markdown@2.0.0 typecheck
-> tsc --noEmit
-
-tests/run-ocr.ts(17,10): error TS2571: Object is of type 'unknown'.
-
-```
+- 无，所有必要阶段通过。
 

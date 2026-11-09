@@ -191,3 +191,26 @@ test("Automator JXA object harness uses executable newlines and keeps original r
   assert.ok(runner.includes('Path(argv[0])'));
   assert.ok(!runner.includes('function run(argv) { return __automatorOriginalRun'));
 });
+
+test("Office files use distinct Markdown output names in mixed folders", async () => {
+  const {planConversions}=await import("../src/core/processor");
+  const {createNodeFilePort}=await import("../src/adapters/node-fs");
+  const {mkdtempSync,writeFileSync,rmSync}=await import("node:fs");
+  const dir=mkdtempSync(path.join(TESTS,"temp-mixed-"));
+  try {
+    for(const ext of ["pdf","docx","pptx","xlsx"])writeFileSync(path.join(dir,"same."+ext),"fixture");
+    const port=createNodeFilePort();
+    const planned=planConversions([dir],port).map(x=>x.output);
+    assert.equal(planned.length,4);
+    assert.deepEqual(new Set(planned).size,4);
+    assert.ok(planned.includes(dir+"_md/same.md"));
+    for(const ext of ["docx","pptx","xlsx"]){
+      assert.ok(planned.includes(dir+"_md/same."+ext+".md"));
+      assert.equal(planConversions([path.join(dir,"same."+ext)],port)[0].output,
+        path.join(dir,"same."+ext+".md"));
+    }
+  } finally {
+    rmSync(dir,{recursive:true,force:true});
+    rmSync(dir+"_md",{recursive:true,force:true});
+  }
+});

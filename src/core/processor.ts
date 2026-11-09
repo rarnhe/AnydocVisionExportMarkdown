@@ -86,7 +86,7 @@ export function planConversions(argv: string[], port: FilePort): ConversionTask[
   const input = normalize(parseArguments(argv)), kind = port.stat(input);
   if (kind === "file") {
     if (!SUPPORTED.test(input)) throw new Error("Expected PDF/DOCX/PPTX/XLSX: " + input);
-    const stem = input.replace(SUPPORTED,"");
+    const stem = /\.pdf$/i.test(input) ? input.slice(0,-4) : input;
     // Same directory: file.md, file-1.md, file-2.md, ...
     return [{input, output: availableMarkdown(stem, port)}];
   }
@@ -98,7 +98,7 @@ export function planConversions(argv: string[], port: FilePort): ConversionTask[
   // Every folder run creates a new sibling tree: A_md, A_md 2, A_md 3, ...
   const destination = availablePath(base, port, n => " " + n, 2);
   const tasks = discoverDocuments(input,port).map(source => ({
-    input:source,output:join(destination,relativePath(input,source).replace(SUPPORTED,"")+".md")
+    input:source,output:join(destination,(/\.pdf$/i.test(source) ? relativePath(input,source).slice(0,-4) : relativePath(input,source))+".md")
   }));
   const seen = new Set<string>();
   for (const task of tasks) {

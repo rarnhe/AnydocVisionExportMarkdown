@@ -147,8 +147,19 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "ci: update directory test_report.md [skip ci]"
-          git push origin "HEAD:refs/heads/${REPORT_BRANCH}"
+          git commit -m "ci: update test_report.md [skip ci]"
+          # The report commit is based on the checkout SHA; source commits may
+          # arrive while the runner is executing. Rebase and retry with a lease.
+          for attempt in 1 2 3; do
+            git fetch origin "${REPORT_BRANCH}"
+            if git rebase "origin/${REPORT_BRANCH}" && git push origin "HEAD:refs/heads/${REPORT_BRANCH}"; then
+              exit 0
+            fi
+            git rebase --abort || true
+            sleep 2
+          done
+          echo "Unable to publish test_report.md after three attempts."
+          exit 1
 
       - name: Fail job when any required phase failed
         if: always()

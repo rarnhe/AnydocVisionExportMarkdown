@@ -24,6 +24,7 @@ try{
  if(build.status!==0)throw Error("build failed: "+build.stderr);
  for(const item of fixtures)if(!existsSync(path.join(fixture,item.name)))
    throw Error("Missing document fixture "+item.name);
+ const singleHashes=new Map<string,string>();
  const report=["","## Document format SHA256 parity (Node / JXA)","",
    "| Source format | Node SHA256 | JXA SHA256 | Result |","|---|---|---|---|"];
  for(const {name:fixtureName,type:ext} of fixtures){
@@ -37,6 +38,7 @@ try{
    invoke("JXA",name+"-jxa",input,1);
    const b=digest(nodeMd);
    if(a!==b)throw Error("Node/JXA SHA256 mismatch for "+ext+": "+a+" vs "+b);
+   singleHashes.set(ext,a);
    report.push("| "+ext+" | "+a+" | "+b+" | PASS |");
  }
  // Folder mode: same four files in one directory, no output name collision.
@@ -51,7 +53,8 @@ try{
    const a=digest(path.join(folder+"_md",relative));
    const b=digest(path.join(folder+"_md 2",relative));
    if(a!==b)throw Error("Folder Node/JXA SHA256 mismatch "+ext);
-   report.push("| folder/"+ext+" | "+a+" | "+b+" | PASS |");
+   if(a!==singleHashes.get(ext))throw Error("Single-file vs folder SHA256 mismatch "+ext);
+   report.push("| folder/"+ext+" (also matches single file) | "+a+" | "+b+" | PASS |");
  }
  writeFileSync(path.join(root,"test_report.md"),report.join("\n")+"\n",{flag:"a"});
  console.log(report.join("\n"));

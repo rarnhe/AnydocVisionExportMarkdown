@@ -136,6 +136,6 @@ macOS CI 除了直接以 `osascript` 执行 Automator 脚本外，还通过临�
 
 - 单文件输入：`*.pdf`、`*.docx`、`*.pptx`、`*.xlsx`；文件夹输入递归扫描上述四类文件。
 - PDF 首先使用 AnyDoc WASM；仅在返回结构化 `needsOcr` 错误时，JXA 使用原生 PDFKit 拆分文本页及 macOS Vision OCR 识别扫描页，按原始页码合并后清理临时目录。Node 开发模式目前不提供 Vision OCR 回退。
-- 单 PDF 输出 `name.md`；Office 输出 `name.docx.md` 等（避免与同名 PDF 冲突）。文件夹输出 `folder_md`、`folder_md 2` 等镜像目录。
-- `tests/chunk_1.pdf` 为纯文本基准；`tests/origin.pdf` 为 56 页混合 OCR 基准；`tests/chunk_2.docx`、`tests/chunk_3.pptx`、`tests/chunk_1.xlsx` 为已提交到仓库的 Office 格式基准；CI 不再动态生成或回写 Office 测试文件。
+- PDF、DOCX、PPTX、XLSX 统一输出原始文件名去掉扩展名后的 `name.md`。如果同一文件夹存在不同格式但同名的文件，目录模式会明确报出输出名称冲突，不会静默覆盖。文件夹输出 `folder_md`、`folder_md 2` 等镜像目录。
+- `tests/chunk_1.pdf` 为纯文本基准；`tests/origin.pdf` 为 56 页混合 OCR 基准；`tests/chunk_2.docx`、`tests/chunk_3.pptx`、`tests/chunk_4.xlsx` 为已提交到仓库的 Office 格式基准；CI 不再动态生成或回写 Office 测试文件。
 - CI 验证四种文件格式的单文件及文件夹 Node/JXA SHA256 一致性，另独立验证混合 PDF 的 JXA 单文件/文件夹一致性；结果写入 `test_report.md`。

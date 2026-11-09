@@ -206,7 +206,7 @@ test("unique PDF and Office stems produce clean .md outputs in file and folder m
     assert.equal(new Set(planned).size,4);
     for(const name of names){
       const expected=path.join(dir+"_md",name.replace(/\\.[^.]+$/,".md"));
-      assert.ok(planned.includes(expected));
+      assert.ok(planned.some(output=>path.resolve(output)===path.resolve(expected)),\n        "Expected "+expected+" in planned outputs: "+JSON.stringify(planned));
       assert.equal(planConversions([path.join(dir,name)],port)[0].output,
         path.join(dir,name.replace(/\\.[^.]+$/,".md")));
     }

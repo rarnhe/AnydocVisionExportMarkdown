@@ -7,7 +7,6 @@ const root = path.resolve(__dirname, "..");
 const report = path.join(root, "test_report.md");
 const stages = [
   ["npm ci", "STAGE_DEPS", "npm-install.log"],
-  ["Office fixtures", "STAGE_FIXTURES", "fixtures.log"],
   ["PDF/Office format SHA256", "STAGE_FORMATS", "formats-runner.log"],
   ["Doctor", "STAGE_DOCTOR", "doctor.log"],
   ["TypeScript typecheck", "STAGE_TYPES", "typecheck.log"],

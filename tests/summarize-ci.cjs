@@ -32,7 +32,7 @@ for (const [name, , log] of failed) {
   if (name === "Unit + JXA probe") {
     const unitLog = path.join(root, "tests/output/unit-tests.log");
     if (fs.existsSync(unitLog)) {
-      const tail = fs.readFileSync(unitLog, "utf8").split(/\\r?\\n/).slice(-70).map(line => line.slice(0, 450));
+      const tail = fs.readFileSync(unitLog, "utf8").split(/\r?\n/).slice(-70).map(line => line.slice(0, 450));
       lines.push("#### Node unit test details", "", "```text", ...tail, "```", "");
     }
   }

@@ -5,14 +5,14 @@ import path from "node:path";
 import {extractBatchOutput} from "./test-utils";
 const root=process.cwd(),out=path.join(root,"tests/output"),source=path.join(root,"tests/origin.pdf");
 function sha(p:string){return createHash("sha256").update(readFileSync(p)).digest("hex");}
-function invoke(label:string,input:string){
+function invoke(label:string,input:string,expected=1){
   const run=spawnSync("osascript",["-l","JavaScript",path.join(root,"dist/anydoc-wasm.osascript.js"),input],
     {cwd:root,encoding:"utf8",timeout:900000,maxBuffer:16*1024*1024});
   writeFileSync(path.join(out,"ocr-"+label+".log"),
     "exit="+run.status+"\n"+run.stdout+"\n"+run.stderr);
   if(run.status!==0)throw Error(label+" osascript failed: "+run.stderr);
   const result=extractBatchOutput(String(run.stdout)+"\n"+String(run.stderr));
-  if(result.failureCount||result.conversionCount!==1||result.wasmInitializationCount!==1)
+  if(result.failureCount||result.conversionCount!==expected||result.wasmInitializationCount!==1)
     throw Error(label+" bad result "+JSON.stringify(result));
   return (result.conversions as Array<{output:string}>)[0].output;
 }
@@ -27,9 +27,19 @@ try {
   rmSync(folder+"_md",{recursive:true,force:true});
   mkdirSync(folder,{recursive:true});
   copyFileSync(source,single);copyFileSync(source,path.join(folder,"origin.pdf"));
+  for(const ext of ["pdf","docx","pptx","xlsx"] as const){
+    const src=path.join(root,"tests","chunk_1."+ext);
+    if(!existsSync(src))throw Error("Missing mixed folder fixture: "+src);
+    copyFileSync(src,path.join(folder,"chunk_1."+ext));
+  }
   for(let i=0;i<3;i++)rmSync(path.join(out,"ocr-origin"+(i?"-"+i:"")+".md"),{force:true});
   const singleMd=invoke("single",single);
-  const folderMd=invoke("folder",folder);
+  invoke("folder",folder,5);
+  const folderMd=path.join(folder+"_md","origin.md");
+  for(const name of ["chunk_1.md","chunk_1.docx.md","chunk_1.pptx.md","chunk_1.xlsx.md"]){
+    const file=path.join(folder+"_md",name);
+    if(!existsSync(file)||readFileSync(file).length<30)throw Error("Missing/short mixed folder Markdown: "+name);
+  }
   if(!existsSync(singleMd)||!existsSync(folderMd))throw Error("Missing OCR Markdown output");
   const a=readFileSync(singleMd,"utf8"),b=readFileSync(folderMd,"utf8");
   if(a!==b)throw Error("Folder and single PDF OCR Markdown differ");
@@ -40,7 +50,7 @@ try {
   const report=["","## Mixed PDF Vision OCR recovery (tests/origin.pdf)","",
     "| Mode | Markdown SHA256 | Characters | Result |","|---|---|---:|---|",
     "| PDF | "+digest+" | "+a.length+" | PASS |",
-    "| Directory | "+sha(folderMd)+" | "+b.length+" | PASS |",
+    "| Directory (5 mixed files) | "+sha(folderMd)+" | "+b.length+" | PASS |",
     "","- Native PDFKit split + Vision OCR; both modes have identical output.",
     "- WASM singleton initialized once per execution; source fixture unchanged.",""];
   writeFileSync(path.join(root,"test_report.md"),report.join("\n"),{flag:"a"});

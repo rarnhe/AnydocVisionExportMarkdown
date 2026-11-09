@@ -8,7 +8,7 @@ export interface AnyDocAssets {
 interface AnyDocGlue {
   initSync?: (options: {module: WebAssembly.Module}) => unknown;
   default?: {initSync?: (options: {module: WebAssembly.Module}) => unknown;
-             toMarkdownBytes?: (bytes: Uint8Array, type: string) => Uint8Array | string};
+             toMarkdownBytes?: (bytes: Uint8Array, format?: string) => Uint8Array | string};
   toMarkdownBytes?: (bytes: Uint8Array, format?: string) => Uint8Array | string;
   to_markdown_bytes?: (bytes: Uint8Array, format?: string) => Uint8Array | string;
 }

@@ -1,3 +1,4 @@
+import {parseNeedsOcr} from "./needs-ocr";
 import {AnyDocAssets, getAnyDocSingleton, getWasmInitializationCount} from "./engine";
 import type {FilePort} from "../ports/file-port";
 
@@ -107,7 +108,8 @@ export function planConversions(argv: string[], port: FilePort): ConversionTask[
   return tasks;
 }
 export function processInputs(
-  argv: string[], port: FilePort, assets: AnyDocAssets, runtime: "Node" | "JXA"
+  argv: string[], port: FilePort, assets: AnyDocAssets, runtime: "Node" | "JXA",
+  recover?: (input:string, request:NonNullable<ReturnType<typeof parseNeedsOcr>>, engine:ReturnType<typeof getAnyDocSingleton>)=>string
 ): ProcessingResult {
   const tasks = planConversions(argv,port);
   const conversions: ConversionResult[] = [];
@@ -117,7 +119,14 @@ export function processInputs(
     const engine = getAnyDocSingleton(assets);
     for (const task of tasks) {
       try {
-        const markdown = engine.convertPdf(port.readBytes(task.input));
+        let markdown:string;
+        try {
+          markdown=engine.convertPdf(port.readBytes(task.input));
+        } catch(error) {
+          const request=parseNeedsOcr(error);
+          if(!request || !recover)throw error;
+          markdown=recover(task.input,request,engine);
+        }
         port.ensureDirectory(dirname(task.output));
         port.writeText(task.output,markdown);
         conversions.push({input:task.input,output:task.output,markdownCharacters:markdown.length});

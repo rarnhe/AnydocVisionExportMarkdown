@@ -1,6 +1,6 @@
 import {spawnSync} from "node:child_process";
 import {createHash} from "node:crypto";
-import {copyFileSync,existsSync,mkdirSync,readFileSync,rmSync,statSync,writeFileSync} from "node:fs";
+import {copyFileSync,existsSync,mkdirSync,readFileSync,renameSync,rmSync,writeFileSync} from "node:fs";
 import path from "node:path";
 import {extractBatchOutput} from "./test-utils";
 const root=process.cwd(),out=path.join(root,"tests/output"),source=path.join(root,"tests/origin.pdf");
@@ -59,21 +59,21 @@ try {
   // Keep generated PDFs out of tests/ while it is used as the recursive fixture.
   const savedOutput=path.join(root,".tests-output-backup");
   rmSync(savedOutput,{recursive:true,force:true});
-  if(existsSync(out))require("node:fs").renameSync(out,savedOutput);
+  if(existsSync(out))renameSync(out,savedOutput);
   mkdirSync(out,{recursive:true});
-  const before=new Set<string>();
-  for(let n=1;n<=10;n++){
-    const candidate=directFolder+"_md"+(n===1?"":" "+n);
-    if(existsSync(candidate))before.add(candidate);
-  }
-  invoke("tests-directory",directFolder,5,true);
   let actualFolder:string|undefined;
-  for(let n=1;n<=11;n++){
-    const candidate=directFolder+"_md"+(n===1?"":" "+n);
-    if(!before.has(candidate)&&existsSync(candidate)){actualFolder=candidate;break;}
-  }
-  if(!actualFolder)throw Error("Direct tests/ folder output missing");
   try {
+    const before=new Set<string>();
+    for(let n=1;n<=10;n++){
+      const candidate=directFolder+"_md"+(n===1?"":" "+n);
+      if(existsSync(candidate))before.add(candidate);
+    }
+    invoke("tests-directory",directFolder,5,true);
+    for(let n=1;n<=11;n++){
+      const candidate=directFolder+"_md"+(n===1?"":" "+n);
+      if(!before.has(candidate)&&existsSync(candidate)){actualFolder=candidate;break;}
+    }
+    if(!actualFolder)throw Error("Direct tests/ folder output missing");
     for(const name of ["chunk_1.md","chunk_2.md","chunk_3.md","chunk_4.md","origin.md"]){
       const file=path.join(actualFolder,name);
       if(!existsSync(file))throw Error("Direct tests/ folder missing "+name);
@@ -81,9 +81,9 @@ try {
         throw Error("Direct tests/ vs copied folder SHA256 mismatch: "+name);
     }
   } finally {
-    rmSync(actualFolder,{recursive:true,force:true});
+    if(actualFolder)rmSync(actualFolder,{recursive:true,force:true});
     rmSync(out,{recursive:true,force:true});
-    if(existsSync(savedOutput))require("node:fs").renameSync(savedOutput,out);
+    if(existsSync(savedOutput))renameSync(savedOutput,out);
   }
   const digest=sha(singleMd);
   const report=["","## Mixed PDF Vision OCR recovery (tests/origin.pdf)","",

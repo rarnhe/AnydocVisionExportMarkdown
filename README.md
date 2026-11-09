@@ -131,3 +131,11 @@ Automator 版本不需要命令行 shebang，也不启动 `osascript` 子进程�
 ### Automator 对象输入的独立 CI 验证
 
 macOS CI 除了直接以 `osascript` 执行 Automator 脚本外，还通过临时测试包装器向**同一个打包后的 `run(input, parameters)` 函数**传入 `Path(...)` 对象，模拟 Finder 风格的 JXA 文件对象。验证真实 PDF 转换成功，Markdown SHA256 与 Node/JXA CLI 基准一致。该测试不启动 Automator 图形界面，也不替代 Finder/TCC 授权验收。
+
+## PDF / Office 混合输入与 OCR 恢复
+
+- 单文件输入：`*.pdf`、`*.docx`、`*.pptx`、`*.xlsx`；文件夹输入递归扫描上述四类文件。
+- PDF 首先使用 AnyDoc WASM；仅在返回结构化 `needsOcr` 错误时，JXA 使用原生 PDFKit 拆分文本页及 macOS Vision OCR 识别扫描页，按原始页码合并后清理临时目录。Node 开发模式目前不提供 Vision OCR 回退。
+- 单 PDF 输出 `name.md`；Office 输出 `name.docx.md` 等（避免与同名 PDF 冲突）。文件夹输出 `folder_md`、`folder_md 2` 等镜像目录。
+- `tests/chunk_1.pdf` 为纯文本基准；`tests/origin.pdf` 为 56 页混合 OCR 基准；`tests/chunk_1.docx`、`chunk_1.pptx`、`chunk_1.xlsx` 为从 PDFKit 提取文本后生成的 Office 格式基准。若尚未提交这些 Office 二进制文件，macOS CI 会运行 `node tests/generate-fixtures.cjs` 生成并提交。
+- CI 验证四种文件格式的单文件及文件夹 Node/JXA SHA256 一致性，另独立验证混合 PDF 的 JXA 单文件/文件夹一致性；结果写入 `test_report.md`。

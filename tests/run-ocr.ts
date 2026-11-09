@@ -46,11 +46,34 @@ try {
   if(a.length<500 || !a.includes("Vision OCR") || !a.includes("AnyDoc"))
     throw Error("OCR output lacks expected mixed page markers");
   if(sha(source)!==originalHash)throw Error("Reference fixture was modified");
+  // Exercise tests/ itself as the recursive input, not just a copied fixture set.
+  const directFolder=path.join(root,"tests");
+  const before=new Set<string>();
+  for(let n=1;n<=10;n++){
+    const candidate=directFolder+"_md"+(n===1?"":" "+n);
+    if(existsSync(candidate))before.add(candidate);
+  }
+  invoke("tests-directory",directFolder,5);
+  let actualFolder:string|undefined;
+  for(let n=1;n<=11;n++){
+    const candidate=directFolder+"_md"+(n===1?"":" "+n);
+    if(!before.has(candidate)&&existsSync(candidate)){actualFolder=candidate;break;}
+  }
+  if(!actualFolder)throw Error("Direct tests/ folder output missing");
+  try {
+    for(const name of ["chunk_1.md","chunk_2.md","chunk_3.md","chunk_4.md","origin.md"]){
+      const file=path.join(actualFolder,name);
+      if(!existsSync(file))throw Error("Direct tests/ folder missing "+name);
+      if(sha(file)!==sha(path.join(folder+"_md",name)))
+        throw Error("Direct tests/ vs copied folder SHA256 mismatch: "+name);
+    }
+  } finally {rmSync(actualFolder,{recursive:true,force:true});}
   const digest=sha(singleMd);
   const report=["","## Mixed PDF Vision OCR recovery (tests/origin.pdf)","",
     "| Mode | Markdown SHA256 | Characters | Result |","|---|---|---:|---|",
     "| PDF | "+digest+" | "+a.length+" | PASS |",
     "| Directory (5 mixed files) | "+sha(folderMd)+" | "+b.length+" | PASS |",
+    "| Direct tests/ recursive input | "+sha(folderMd)+" | "+b.length+" | PASS |",
     "","- Native PDFKit split + Vision OCR; both modes have identical output.",
     "- WASM singleton initialized once per execution; source fixture unchanged.",""];
   writeFileSync(path.join(root,"test_report.md"),report.join("\n"),{flag:"a"});

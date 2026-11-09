@@ -7,10 +7,13 @@ const root = path.resolve(__dirname, "..");
 const report = path.join(root, "test_report.md");
 const stages = [
   ["npm ci", "STAGE_DEPS", "npm-install.log"],
+  ["PDF/Office format SHA256", "STAGE_FORMATS", "formats-runner.log"],
   ["Doctor", "STAGE_DOCTOR", "doctor.log"],
   ["TypeScript typecheck", "STAGE_TYPES", "typecheck.log"],
   ["Unit + JXA probe", "STAGE_PROBES", "probes-runner.log"],
-  ["Node/JXA directory SHA256", "STAGE_DIRECTORY", "directory-runner.log"]
+  ["Node/JXA directory SHA256", "STAGE_DIRECTORY", "directory-runner.log"],
+  ["OCR metadata unit", "STAGE_OCR_UNIT", "ocr-unit.log"],
+  ["Real PDFKit/Vision OCR file and directory", "STAGE_OCR", "ocr-runner.log"]
 ];
 if (!fs.existsSync(report)) fs.writeFileSync(report, "# JXA test report\n\n- FAIL: earlier stages produced no report.\n");
 const lines = ["", "## CI 最终阶段状态", ""];
@@ -29,7 +32,7 @@ for (const [name, , log] of failed) {
   if (name === "Unit + JXA probe") {
     const unitLog = path.join(root, "tests/output/unit-tests.log");
     if (fs.existsSync(unitLog)) {
-      const tail = fs.readFileSync(unitLog, "utf8").split(/\\r?\\n/).slice(-70).map(line => line.slice(0, 450));
+      const tail = fs.readFileSync(unitLog, "utf8").split(/\r?\n/).slice(-70).map(line => line.slice(0, 450));
       lines.push("#### Node unit test details", "", "```text", ...tail, "```", "");
     }
   }

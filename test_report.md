@@ -1,16 +1,16 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-09T16:50:56.687Z
+- 测试时间 (UTC): 2026-11-09T17:49:47.245Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: 1f3050b3b2a214371be48adb6560216b58c5851b
-- GitHub Run: 42658006960
+- GitHub SHA: ac3fd9590efe0d00289ef2f2ae5829212a167092
+- GitHub Run: 42668343870
 
 ## 测试状态
 
 | 测试 | 结果 | 日志 |
 |---|---|---|
-| Node.js TypeScript 单元测试 | PASS | tests/output/unit-tests.log |
+| Node.js TypeScript 单元测试 | FAIL | tests/output/unit-tests.log |
 | JXA 原生能力探针 | PASS | tests/output/jxa.log |
 
 PASS 表示宿主进程运行且结果结构有效，不代表全部 API 均可使用。
@@ -80,9 +80,41 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 ## 失败项
 
-- 无
+- Node.js TypeScript unit tests failed; see unit-tests.log
 
 完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
+
+## Mixed PDF Vision OCR recovery (Node / JXA)
+
+| Input mode / file | Node SHA256 | JXA SHA256 | Result |
+|---|---|---|---|
+| Single PDF / origin.pdf | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | PASS |
+| Recursive folder / origin.pdf | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | PASS |
+| chunk_1.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| chunk_2.md | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | PASS |
+| chunk_3.md | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | PASS |
+| chunk_4.md | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | PASS |
+| origin.md | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | PASS |
+
+- OCR request metadata is retained in ANYDOC_BATCH_JSON as code/pages/pageCount.
+- Text-page PDF ranges use AnyDoc; scanned pages use macOS Vision OCR; Markdown is merged in original page order.
+- Internal chunk boundary comments are excluded from the exported Markdown.
+- Node delegates only native PDFKit/Vision recovery to an isolated JXA helper; Node and JXA each initialize their own AnyDoc WASM singleton once.
+- Recursive fixtures are isolated under the OS temporary directory; CI output/log folders are never scanned.
+- Source fixture unchanged.
+
+## Document format SHA256 parity (Node / JXA)
+
+| Source format | Node SHA256 | JXA SHA256 | Result |
+|---|---|---|---|
+| pdf | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| docx | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | PASS |
+| pptx | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | PASS |
+| xlsx | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | PASS |
+| folder/pdf (also matches single file) | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| folder/docx (also matches single file) | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | PASS |
+| folder/pptx (also matches single file) | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | PASS |
+| folder/xlsx (also matches single file) | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | PASS |
 
 ## 单个 PDF 与递归目录：Node / JXA SHA256 对照
 
@@ -112,12 +144,106 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 ## CI 最终阶段状态
 
 - npm ci: **SUCCESS**
+- PDF/Office format SHA256: **SUCCESS**
 - Doctor: **SUCCESS**
-- TypeScript typecheck: **SUCCESS**
-- Unit + JXA probe: **SUCCESS**
+- TypeScript typecheck: **FAILURE**
+- Unit + JXA probe: **FAILURE**
 - Node/JXA directory SHA256: **SUCCESS**
+- OCR metadata unit: **SUCCESS**
+- Real PDFKit/Vision OCR file and directory: **SUCCESS**
 
 ## 失败阶段日志摘要
 
-- 无，所有必要阶段通过。
+### TypeScript typecheck
+
+```text
+
+> anydoc-vision-export-markdown@2.0.0 typecheck
+> tsc --noEmit
+
+tests/unit.test.ts(209,85): error TS1127: Invalid character.
+tests/unit.test.ts(209,95): error TS1005: ',' expected.
+
+```
+
+### Unit + JXA probe
+
+```text
+| wasm.compile_async_api | supported | API present; not invoked |
+| wasm.compile_streaming_api | unavailable | API not exposed |
+| wasm.empty_module_instance | supported | 8-byte empty WASM module instantiated |
+| wasm.exported_add_function | supported | WASM export add(20,22) = 42 |
+| wasm.instantiate_async_api | supported | API present; not invoked |
+| wasm.instantiate_streaming_api | unavailable | API not exposed |
+| wasm.memory | supported | one 64KiB page |
+| wasm.validate | supported | valid empty WASM module |
+
+## 测量限制
+
+- WASM 功能探针使用最小模块，真实 AnyDoc WASM 转换由独立测试验证。
+- WASM compile/instantiate 的异步及 streaming API 只检查存在性，不等待 Promise。
+- Foundation FS 探针尝试在临时目录写入、读取、删除文件。
+- Application.currentApplication() 仅证明当前应用代理可构造，不证明跨应用控制权。
+- CI 不主动访问 Finder 或 System Events：其他应用的 Apple Events/TCC 授权未测试。
+- AppKit 桥接不等于拥有可用图形会话；测试结果随 macOS 版本变化。
+
+## 失败项
+
+- Node.js TypeScript unit tests failed; see unit-tests.log
+
+完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
+
+
+```
+
+#### Node unit test details
+
+```text
+$ npm run test:unit
+exit=1
+STDOUT:
+
+> anydoc-vision-export-markdown@2.0.0 test:unit
+> tsx --test tests/unit.test.ts
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error: Transform failed with 1 error:
+/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/unit.test.ts:209:85: ERROR: Syntax error "n"
+    at failureErrorWithLog (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:1752:15)
+    at /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:1019:50
+    at responseCallbacks.<computed> (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:886:9)
+    at handleIncomingPacket (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:941:12)
+    at Socket.readFromStdout (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:864:7)
+    at Socket.emit (node:events:514:28)
+    at addChunk (node:internal/streams/readable:569:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:520:3)
+    at Readable.push (node:internal/streams/readable:400:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:194:23) {
+  name: 'TransformError'
+}
+
+Node.js v24.22.2
+✖ tests/unit.test.ts (225.250334ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 239.683541
+
+✖ failing tests:
+
+test at tests/unit.test.ts:1:1
+✖ tests/unit.test.ts (225.250334ms)
+  'test failed'
+
+STDERR:
+
+
+```
 

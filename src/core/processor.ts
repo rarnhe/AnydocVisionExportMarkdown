@@ -1,7 +1,8 @@
+import {parseNeedsOcr} from "./needs-ocr";
 import {AnyDocAssets, getAnyDocSingleton, getWasmInitializationCount} from "./engine";
 import type {FilePort} from "../ports/file-port";
 
-export interface ConversionResult {input: string; output: string; markdownCharacters: number}
+export interface ConversionResult {input: string; output: string; markdownCharacters: number; ocrRecovery?: {code:"needsOcr";pages:number[];pageCount:number}}
 export interface ConversionTask {input: string; output: string}
 export interface ProcessingResult {
   schema: 1;
@@ -17,10 +18,11 @@ export interface ProcessingResult {
   failures: Array<{input: string; message: string}>;
 }
 
-/** Exactly one PDF or one directory; multiple inputs and all flags are unsupported. */
+const SUPPORTED = /\.(pdf|doc|docx|docm|ppt|pps|pot|pptx|pptm|ppsx|ppsm|xls|xlsx|xlsm|xlsb|odt|ods|odp|rtf|epub|csv)$/i;
+/** Exactly one supported document or one directory; multiple inputs and flags unsupported. */
 export function parseArguments(argv: string[]): string {
   if (argv.length !== 1 || !argv[0] || String(argv[0]).startsWith("--")) {
-    throw new Error("Usage: <script> INPUT.pdf | INPUT_DIRECTORY (exactly one input; no options)");
+    throw new Error("Usage: <script> INPUT.(AnyDoc-supported format) | INPUT_DIRECTORY (exactly one input; no options)");
   }
   return String(argv[0]);
 }
@@ -48,7 +50,7 @@ function relativePath(parent: string, child: string): string {
   if (!child.startsWith(prefix)) throw new Error("Path is outside input tree: " + child);
   return child.slice(prefix.length);
 }
-function discoverPdfs(root: string, port: FilePort): string[] {
+function discoverDocuments(root: string, port: FilePort): string[] {
   const files: string[] = [], stack = [root];
   while (stack.length) {
     const directory = stack.pop()!;
@@ -59,7 +61,7 @@ function discoverPdfs(root: string, port: FilePort): string[] {
           entry.name.includes("/")) throw new Error("Unsafe directory entry: " + entry.name);
       const full = join(directory, entry.name);
       if (entry.kind === "directory") stack.push(full);
-      else if (entry.kind === "file" && /\.pdf$/i.test(entry.name)) files.push(full);
+      else if (entry.kind === "file" && SUPPORTED.test(entry.name)) files.push(full);
     }
   }
   return files.sort();
@@ -83,20 +85,20 @@ function availableMarkdown(stem: string, port: FilePort): string {
 export function planConversions(argv: string[], port: FilePort): ConversionTask[] {
   const input = normalize(parseArguments(argv)), kind = port.stat(input);
   if (kind === "file") {
-    if (!/\.pdf$/i.test(input)) throw new Error("Expected a PDF file: " + input);
-    const stem = input.slice(0,-4);
+    if (!SUPPORTED.test(input)) throw new Error("Expected an AnyDoc-supported document format: " + input);
+    const stem = input.replace(SUPPORTED, "");
     // Same directory: file.md, file-1.md, file-2.md, ...
     return [{input, output: availableMarkdown(stem, port)}];
   }
-  if (kind !== "directory") throw new Error("Expected a PDF file or existing directory: " + input);
+  if (kind !== "directory") throw new Error("Expected a supported document file or existing directory: " + input);
   if (input === "/" || input === "." || input === ".." || input.endsWith("/..")) {
     throw new Error("Specify a named directory, not filesystem root/current directory");
   }
   const base = input + "_md";
   // Every folder run creates a new sibling tree: A_md, A_md 2, A_md 3, ...
   const destination = availablePath(base, port, n => " " + n, 2);
-  const tasks = discoverPdfs(input,port).map(source => ({
-    input:source,output:join(destination,relativePath(input,source).slice(0,-4)+".md")
+  const tasks = discoverDocuments(input,port).map(source => ({
+    input:source,output:join(destination,relativePath(input,source).replace(SUPPORTED, "")+".md")
   }));
   const seen = new Set<string>();
   for (const task of tasks) {
@@ -107,22 +109,35 @@ export function planConversions(argv: string[], port: FilePort): ConversionTask[
   return tasks;
 }
 export function processInputs(
-  argv: string[], port: FilePort, assets: AnyDocAssets, runtime: "Node" | "JXA"
+  argv: string[], port: FilePort, assets: AnyDocAssets, runtime: "Node" | "JXA",
+  recover?: (input:string, request:NonNullable<ReturnType<typeof parseNeedsOcr>>, engine:ReturnType<typeof getAnyDocSingleton>)=>string
 ): ProcessingResult {
   const tasks = planConversions(argv,port);
   const conversions: ConversionResult[] = [];
-  const failures: Array<{input:string;message:string}> = [];
+  const failures: Array<{input:string;message:string;ocrRecovery?:{code:"needsOcr";pages:number[];pageCount:number}}> = [];
   // Both modes create new destinations; no old Markdown is silently skipped.
   if (tasks.length) {
     const engine = getAnyDocSingleton(assets);
     for (const task of tasks) {
+      let ocrRecovery:ReturnType<typeof parseNeedsOcr>=null;
       try {
-        const markdown = engine.convertPdf(port.readBytes(task.input));
+        let markdown:string;
+        try {
+          const type=task.input.toLowerCase().slice(task.input.lastIndexOf(".")+1);
+          markdown=engine.convert(port.readBytes(task.input),type);
+        } catch(error) {
+          const request=parseNeedsOcr(error);
+          if(!request || !recover || !/\.pdf$/i.test(task.input))throw error;
+          ocrRecovery=request;
+          markdown=recover(task.input,request,engine);
+        }
         port.ensureDirectory(dirname(task.output));
         port.writeText(task.output,markdown);
-        conversions.push({input:task.input,output:task.output,markdownCharacters:markdown.length});
+        conversions.push({input:task.input,output:task.output,markdownCharacters:markdown.length,
+          ...(ocrRecovery?{ocrRecovery:{code:"needsOcr" as const,pages:ocrRecovery.pages,pageCount:ocrRecovery.pageCount}}:{})});
       } catch(error) {
-        failures.push({input:task.input,message:String(error)});
+        failures.push({input:task.input,message:String(error),
+          ...(ocrRecovery?{ocrRecovery:{code:"needsOcr" as const,pages:ocrRecovery.pages,pageCount:ocrRecovery.pageCount}}:{})});
       }
     }
   }

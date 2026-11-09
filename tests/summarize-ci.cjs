@@ -10,7 +10,9 @@ const stages = [
   ["Doctor", "STAGE_DOCTOR", "doctor.log"],
   ["TypeScript typecheck", "STAGE_TYPES", "typecheck.log"],
   ["Unit + JXA probe", "STAGE_PROBES", "probes-runner.log"],
-  ["Node/JXA directory SHA256", "STAGE_DIRECTORY", "directory-runner.log"]
+  ["Node/JXA directory SHA256", "STAGE_DIRECTORY", "directory-runner.log"],
+  ["OCR metadata unit", "STAGE_OCR_UNIT", "ocr-unit.log"],
+  ["Real PDFKit/Vision OCR file and directory", "STAGE_OCR", "ocr-runner.log"]
 ];
 if (!fs.existsSync(report)) fs.writeFileSync(report, "# JXA test report\n\n- FAIL: earlier stages produced no report.\n");
 const lines = ["", "## CI 最终阶段状态", ""];

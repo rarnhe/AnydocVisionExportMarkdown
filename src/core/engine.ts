@@ -9,12 +9,12 @@ interface AnyDocGlue {
   initSync?: (options: {module: WebAssembly.Module}) => unknown;
   default?: {initSync?: (options: {module: WebAssembly.Module}) => unknown;
              toMarkdownBytes?: (bytes: Uint8Array, type: string) => Uint8Array | string};
-  toMarkdownBytes?: (bytes: Uint8Array, type: string) => Uint8Array | string;
-  to_markdown_bytes?: (bytes: Uint8Array, type: string) => Uint8Array | string;
+  toMarkdownBytes?: (bytes: Uint8Array, format?: string) => Uint8Array | string;
+  to_markdown_bytes?: (bytes: Uint8Array, format?: string) => Uint8Array | string;
 }
 
 export class AnyDocEngine {
-  private readonly convertFn: (bytes: Uint8Array, type: string) => Uint8Array | string;
+  private readonly convertFn: (bytes: Uint8Array, format?: string) => Uint8Array | string;
 
   constructor(assets: AnyDocAssets) {
     installAnyDocPolyfills();
@@ -41,7 +41,7 @@ export class AnyDocEngine {
     if (type === "pdf" && (bytes.length < 5 || String.fromCharCode(...bytes.subarray(0, 5)) !== "%PDF-")) {
       throw new Error("Input is not a PDF");
     }
-    const result = this.convertFn(bytes, type);
+    // Let AnyDoc inspect the document bytes for all self-describing formats.\n    // CSV has no dependable magic signature, so it is the sole format passed explicitly.\n    const result = type.toLowerCase() === "csv"\n      ? this.convertFn(bytes, "csv")\n      : this.convertFn(bytes);
     const markdown = typeof result === "string"
       ? result
       : new TextDecoder("utf-8").decode(new Uint8Array(result));

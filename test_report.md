@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-09T05:45:33.049Z
+- 测试时间 (UTC): 2026-11-09T17:26:21.988Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: c70e75e6f0de256abb6baff6e0f932f9594942ac
-- GitHub Run: 42568638704
+- GitHub SHA: e0ea3abf0733f2fd9bcf9745cdf8e983589f5fb0
+- GitHub Run: 42663348588
 
 ## 测试状态
 
@@ -84,9 +84,24 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
 
-## Mixed PDF OCR recovery
+## Mixed PDF Vision OCR recovery (Node / JXA)
 
-- FAIL: Error: tests-directory bad result {"schema":1,"runtime":"JXA","mode":"single-process","wasmInitializationCount":1,"discoveredCount":11,"conversionCount":11,"conversions":[{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/chunk_1.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/chunk_1.md","markdownCharacters":15965},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/chunk_2.docx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/chunk_2.md","markdownCharacters":485},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/chunk_3.pptx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/chunk_3.md","markdownCharacters":189},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/chunk_4.xlsx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/chunk_4.md","markdownCharacters":613},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/origin.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/origin.md","markdownCharacters":47000},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-directory/chunk_1.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-directory/chunk_1.md","markdownCharacters":15965},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-directory/chunk_2.docx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-directory/chunk_2.md","markdownCharacters":485},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-directory/chunk_3.pptx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-directory/chunk_3.md","markdownCharacters":189},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-directory/chunk_4.xlsx","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-directory/chunk_4.md","markdownCharacters":613},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-directory/origin.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-directory/origin.md","markdownCharacters":47000},{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/output/ocr-origin.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/output/ocr-origin.md","markdownCharacters":47000}],"skippedCount":0,"skipped":[],"failureCount":0,"failures":[]}
+| Input mode / file | Node SHA256 | JXA SHA256 | Result |
+|---|---|---|---|
+| Single PDF / origin.pdf | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | PASS |
+| Recursive folder / origin.pdf | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | PASS |
+| chunk_1.md | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | 2a7a622202a145550abe5dc48475c0823d1a32be3cc11058a58df8d8f2cef131 | PASS |
+| chunk_2.md | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | e74a99d68bd269e2362f01cf83a2df627b41e3c70f854939e7134f9300e89e32 | PASS |
+| chunk_3.md | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | aebc1e760d2a2047dea3e665a3833586d20f2d6652d979749829ea2f01f3c576 | PASS |
+| chunk_4.md | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | ac24b6cf2fe4485fc9fc9c2548c69139ea298ed9ec12c4c3b910356c187ab608 | PASS |
+| origin.md | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | af8897bd258d5cd2d5f25dea422396737db08c40c0ab5a7f802daaade9a4d67b | PASS |
+
+- OCR request metadata is retained in ANYDOC_BATCH_JSON as code/pages/pageCount.
+- Text-page PDF ranges use AnyDoc; scanned pages use macOS Vision OCR; Markdown is merged in original page order.
+- Internal chunk boundary comments are excluded from the exported Markdown.
+- Node delegates only native PDFKit/Vision recovery to an isolated JXA helper; Node and JXA each initialize their own AnyDoc WASM singleton once.
+- Recursive fixtures are isolated under the OS temporary directory; CI output/log folders are never scanned.
+- Source fixture unchanged.
 
 ## Document format SHA256 parity (Node / JXA)
 
@@ -131,13 +146,25 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 - npm ci: **SUCCESS**
 - PDF/Office format SHA256: **SUCCESS**
 - Doctor: **SUCCESS**
-- TypeScript typecheck: **SUCCESS**
+- TypeScript typecheck: **FAILURE**
 - Unit + JXA probe: **FAILURE**
 - Node/JXA directory SHA256: **SUCCESS**
 - OCR metadata unit: **SUCCESS**
-- Real PDFKit/Vision OCR file and directory: **FAILURE**
+- Real PDFKit/Vision OCR file and directory: **SUCCESS**
 
 ## 失败阶段日志摘要
+
+### TypeScript typecheck
+
+```text
+
+> anydoc-vision-export-markdown@2.0.0 typecheck
+> tsc --noEmit
+
+tests/unit.test.ts(209,85): error TS1127: Invalid character.
+tests/unit.test.ts(209,95): error TS1005: ',' expected.
+
+```
 
 ### Unit + JXA probe
 
@@ -179,21 +206,44 @@ STDOUT:
 > anydoc-vision-export-markdown@2.0.0 test:unit
 > tsx --test tests/unit.test.ts
 
-✔ probe parser extracts JSON after diagnostic output (1.870542ms)
-✔ probe parser skips malformed marker and accepts a later valid marker (0.221042ms)
-✔ probe parser rejects missing marker and wrong schema (0.314083ms)
-✔ Markdown report escaping handles pipes and newlines (0.213334ms)
-✔ batch parser accepts JXA and Node results (0.3
-```
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
 
-### Real PDFKit/Vision OCR file and directory
+Error: Transform failed with 1 error:
+/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/unit.test.ts:209:85: ERROR: Syntax error "n"
+    at failureErrorWithLog (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:1752:15)
+    at /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:1019:50
+    at responseCallbacks.<computed> (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:886:9)
+    at handleIncomingPacket (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:941:12)
+    at Socket.readFromStdout (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:864:7)
+    at Socket.emit (node:events:514:28)
+    at addChunk (node:internal/streams/readable:569:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:520:3)
+    at Readable.push (node:internal/streams/readable:400:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:194:23) {
+  name: 'TransformError'
+}
 
-```text
+Node.js v24.22.2
+✖ tests/unit.test.ts (178.144459ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 186.367083
 
-> anydoc-vision-export-markdown@2.0.0 test:ocr
-> tsx tests/run-ocr.ts
+✖ failing tests:
 
-Error: tests-directory bad result {"schema":1,"runtime":"JXA","mode":"single-process","wasmInitializationCount":1,"discoveredCount":11,"conversionCount":11,"conversions":[{"input":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/chunk_1.pdf","output":"/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests_md/chunk_1.md","markdownCharacters":15965},{"input":"/Users/runner/work/AnydocVisionExpo
+test at tests/unit.test.ts:1:1
+✖ tests/unit.test.ts (178.144459ms)
+  'test failed'
+
+STDERR:
+
 
 ```
 

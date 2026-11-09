@@ -37,7 +37,7 @@ export class AnyDocEngine {
     this.convertFn = convert;
   }
 
-  convert(bytes: Uint8Array, type: "pdf" | "docx" | "pptx" | "xlsx"): string {
+  convert(bytes: Uint8Array, type: string): string {
     if (type === "pdf" && (bytes.length < 5 || String.fromCharCode(...bytes.subarray(0, 5)) !== "%PDF-")) {
       throw new Error("Input is not a PDF");
     }

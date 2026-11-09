@@ -11,6 +11,7 @@
     "test:unit": "tsx --test tests/unit.test.ts",
     "test:probes": "tsx tests/run-probes.ts",
     "test:directory": "tsx tests/run-directory.ts",
+    "test:ocr": "tsx tests/run-ocr.ts",
     "doctor": "node tests/doctor.cjs"
   },
   "devDependencies": {

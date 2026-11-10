@@ -1,16 +1,16 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-10T16:21:57.334Z
+- 测试时间 (UTC): 2026-11-10T17:19:36.336Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: 866ce6f97d7a92d9cd15f6c2458c0245cede6b0f
-- GitHub Run: 42852913288
+- GitHub SHA: 773dd12e243bdeeeec9f49f3c41320e30637be96
+- GitHub Run: 42863744588
 
 ## 测试状态
 
 | 测试 | 结果 | 日志 |
 |---|---|---|
-| Node.js TypeScript 单元测试 | FAIL | tests/output/unit-tests.log |
+| Node.js TypeScript 单元测试 | PASS | tests/output/unit-tests.log |
 | JXA 原生能力探针 | PASS | tests/output/jxa.log |
 
 PASS 表示宿主进程运行且结果结构有效，不代表全部 API 均可使用。
@@ -80,7 +80,7 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 
 ## 失败项
 
-- Node.js TypeScript unit tests failed; see unit-tests.log
+- 无
 
 完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
 
@@ -146,104 +146,13 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 - npm ci: **SUCCESS**
 - PDF/Office format SHA256: **SUCCESS**
 - Doctor: **SUCCESS**
-- TypeScript typecheck: **FAILURE**
-- Unit + JXA probe: **FAILURE**
+- TypeScript typecheck: **SUCCESS**
+- Unit + JXA probe: **SUCCESS**
 - Node/JXA directory SHA256: **SUCCESS**
 - OCR metadata unit: **SUCCESS**
 - Real PDFKit/Vision OCR file and directory: **SUCCESS**
 
 ## 失败阶段日志摘要
 
-### TypeScript typecheck
-
-```text
-
-> anydoc-vision-export-markdown@2.0.0 typecheck
-> tsc --noEmit
-
-tests/unit.test.ts(209,85): error TS1127: Invalid character.
-tests/unit.test.ts(209,95): error TS1005: ',' expected.
-
-```
-
-### Unit + JXA probe
-
-```text
-| wasm.compile_async_api | supported | API present; not invoked |
-| wasm.compile_streaming_api | unavailable | API not exposed |
-| wasm.empty_module_instance | supported | 8-byte empty WASM module instantiated |
-| wasm.exported_add_function | supported | WASM export add(20,22) = 42 |
-| wasm.instantiate_async_api | supported | API present; not invoked |
-| wasm.instantiate_streaming_api | unavailable | API not exposed |
-| wasm.memory | supported | one 64KiB page |
-| wasm.validate | supported | valid empty WASM module |
-
-## 测量限制
-
-- WASM 功能探针使用最小模块，真实 AnyDoc WASM 转换由独立测试验证。
-- WASM compile/instantiate 的异步及 streaming API 只检查存在性，不等待 Promise。
-- Foundation FS 探针尝试在临时目录写入、读取、删除文件。
-- Application.currentApplication() 仅证明当前应用代理可构造，不证明跨应用控制权。
-- CI 不主动访问 Finder 或 System Events：其他应用的 Apple Events/TCC 授权未测试。
-- AppKit 桥接不等于拥有可用图形会话；测试结果随 macOS 版本变化。
-
-## 失败项
-
-- Node.js TypeScript unit tests failed; see unit-tests.log
-
-完整 stdout/stderr 见 GitHub Actions 上传的 tests/output/ 日志。
-
-
-```
-
-#### Node unit test details
-
-```text
-$ npm run test:unit
-exit=1
-STDOUT:
-
-> anydoc-vision-export-markdown@2.0.0 test:unit
-> tsx --test tests/unit.test.ts
-
-node:internal/modules/run_main:107
-    triggerUncaughtException(
-    ^
-
-Error: Transform failed with 1 error:
-/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/tests/unit.test.ts:209:85: ERROR: Syntax error "n"
-    at failureErrorWithLog (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:1752:15)
-    at /Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:1019:50
-    at responseCallbacks.<computed> (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:886:9)
-    at handleIncomingPacket (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:941:12)
-    at Socket.readFromStdout (/Users/runner/work/AnydocVisionExportMarkdown/AnydocVisionExportMarkdown/node_modules/esbuild/lib/main.js:864:7)
-    at Socket.emit (node:events:514:28)
-    at addChunk (node:internal/streams/readable:569:12)
-    at readableAddChunkPushByteMode (node:internal/streams/readable:520:3)
-    at Readable.push (node:internal/streams/readable:400:5)
-    at Pipe.onStreamRead (node:internal/stream_base_commons:194:23) {
-  name: 'TransformError'
-}
-
-Node.js v24.22.2
-✖ tests/unit.test.ts (208.186959ms)
-ℹ tests 1
-ℹ suites 0
-ℹ pass 0
-ℹ fail 1
-ℹ cancelled 0
-ℹ skipped 0
-ℹ todo 0
-ℹ duration_ms 225.023959
-
-✖ failing tests:
-
-test at tests/unit.test.ts:1:1
-✖ tests/unit.test.ts (208.186959ms)
-  'test failed'
-
-STDERR:
-
-
-```
+- 无，所有必要阶段通过。
 

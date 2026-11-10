@@ -117,6 +117,7 @@ export function processInputs(
 ): ProcessingResult {
   const tasks = planConversions(argv,port);
   const conversions: ConversionResult[] = [];
+  const skipped: Array<{input:string;output:string}> = [];
   const failures: Array<{input:string;message:string;ocrRecovery?:{code:"needsOcr";pages:number[];pageCount:number}}> = [];
   // Both modes create new destinations; no old Markdown is silently skipped.
   if (tasks.length) {
@@ -134,6 +135,12 @@ export function processInputs(
           ocrRecovery=request;
           markdown=recover(task.input,request,engine);
         }
+        if (ocrRecovery && markdown.trim().length === 0) {
+          // Every page was image-only/blank and Vision found no text. Do not
+          // create an empty Markdown file or a separator-only document.
+          skipped.push({input:task.input,output:task.output});
+          continue;
+        }
         port.ensureDirectory(dirname(task.output));
         port.writeText(task.output,markdown);
         conversions.push({input:task.input,output:task.output,markdownCharacters:markdown.length,
@@ -146,5 +153,5 @@ export function processInputs(
   }
   return {schema:1,runtime,mode:"single-process",wasmInitializationCount:getWasmInitializationCount(),
     discoveredCount:tasks.length,conversionCount:conversions.length,conversions,
-    skippedCount:0,skipped:[],failureCount:failures.length,failures};
+    skippedCount:skipped.length,skipped,failureCount:failures.length,failures};
 }

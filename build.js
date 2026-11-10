@@ -59,9 +59,7 @@ function run(input, parameters) {
     throw new Error("Automator did not supply a valid POSIX path.");
   }
   var response = JxaAnyDoc.run([posixPath]);
-  var prefix = "ANYDOC_BATCH_JSON=";
-  if (response.indexOf(prefix) !== 0) throw new Error("Unexpected AnyDoc result.");
-  var result = JSON.parse(response.slice(prefix.length));
+  var result = JSON.parse(response);
   if (result.failureCount) {
     throw new Error("AnyDoc failed converting " + result.failureCount + " PDF(s): " +
       JSON.stringify(result.failures));

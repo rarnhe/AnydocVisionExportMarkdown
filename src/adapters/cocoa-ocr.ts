@@ -8,6 +8,17 @@ function str(v:any):string {return String(ObjC.unwrap(v));}
 function write(data:any,path:string):void {
   if(!data || !data.writeToFileAtomically(ns(path),true))throw new Error("Cannot write temporary PDF/image: "+path);
 }
+export function joinOcrLines(lines:string[]):string {
+  return lines.filter(line=>line.trim()).join("\n");
+}
+
+export function assembleOcrChunks(chunks:string[]):string {
+  // Ignore image-only pages with no recognized text. If every chunk is empty,
+  // return an empty string so the processor can omit the Markdown file entirely.
+  const nonEmpty=chunks.filter(chunk=>chunk.trim().length>0);
+  return nonEmpty.length ? nonEmpty.join("\n\n---\n\n")+"\n" : "";
+}
+
 function ocrImage(path:string):string {
   const url=$.NSURL.fileURLWithPath(ns(path));
   const request=$.VNRecognizeTextRequest.alloc.init;
@@ -29,8 +40,9 @@ function ocrImage(path:string):string {
       if(line.trim())lines.push(line);
     }
   }
-  if(!lines.length)throw new Error("Vision OCR returned no text: "+path);
-  return lines.join("\n");
+  // A photograph or blank scan may contain no recognizable text. This is a valid
+  // empty page, not a document-level failure: later pages must still be processed.
+  return joinOcrLines(lines);
 }
 /**
  * JXA-only PDFKit + Vision fallback. No JSC, NSTask, npm OCR library or
@@ -80,7 +92,7 @@ export function recoverWithCocoaPdfKit(
         chunks.push(engine.convertPdf(bytes));
       }
     }
-    return chunks.join("\n\n---\n\n")+"\n";
+    return assembleOcrChunks(chunks);
   } finally {
     if(!manager.removeItemAtPathError(ns(temp),null))
       throw new Error("Cannot remove OCR temporary directory: "+temp);

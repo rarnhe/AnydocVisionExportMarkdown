@@ -205,24 +205,33 @@ test("unique PDF and Office stems produce clean .md outputs in file and folder m
     assert.equal(planned.length,4);
     assert.equal(new Set(planned).size,4);
     for(const name of names){
-      const expected=path.join(dir+"_md",name.replace(/\\.[^.]+$/,".md"));
-      assert.ok(planned.some(output=>path.resolve(output)===path.resolve(expected)),\n        "Expected "+expected+" in planned outputs: "+JSON.stringify(planned));
+      const expected=path.join(dir+"_md",name.replace(/\.[^.]+$/,".md"));
+      assert.ok(planned.some(output=>path.resolve(output)===path.resolve(expected)),
+        "Expected "+expected+" in planned outputs: "+JSON.stringify(planned));
       assert.equal(planConversions([path.join(dir,name)],port)[0].output,
-        path.join(dir,name.replace(/\\.[^.]+$/,".md")));
+        path.join(dir,name.replace(/\.[^.]+$/,".md")));
     }
   } finally {
     rmSync(dir,{recursive:true,force:true});
     rmSync(dir+"_md",{recursive:true,force:true});
   }
 });
-test("same stem across formats is rejected in directory mode", async () => {
+test("same stem across formats gets sequential Markdown names in directory mode", async () => {
   const {planConversions}=await import("../src/core/processor");
   const {createNodeFilePort}=await import("../src/adapters/node-fs");
   const {mkdtempSync,writeFileSync,rmSync}=await import("node:fs");
   const dir=mkdtempSync(path.join(TESTS,"temp-collision-"));
   try {
-    writeFileSync(path.join(dir,"same.pdf"),"pdf");
-    writeFileSync(path.join(dir,"same.docx"),"docx");
-    assert.throws(()=>planConversions([dir],createNodeFilePort()),/Markdown output collision/);
-  } finally {rmSync(dir,{recursive:true,force:true});}
+    for(const name of ["same.pdf","same.docx","same.doc"])
+      writeFileSync(path.join(dir,name),"fixture");
+    const planned=planConversions([dir],createNodeFilePort());
+    assert.equal(planned.length,3);
+    assert.deepEqual(planned.map(x=>path.basename(x.output)),
+      ["same.md","same-1.md","same-2.md"]);
+    assert.deepEqual(planned.map(x=>path.basename(x.input)),
+      ["same.doc","same.docx","same.pdf"]);
+  } finally {
+    rmSync(dir,{recursive:true,force:true});
+    rmSync(dir+"_md",{recursive:true,force:true});
+  }
 });

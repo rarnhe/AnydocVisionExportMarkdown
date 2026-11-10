@@ -97,16 +97,19 @@ export function planConversions(argv: string[], port: FilePort): ConversionTask[
   const base = input + "_md";
   // Every folder run creates a new sibling tree: A_md, A_md 2, A_md 3, ...
   const destination = availablePath(base, port, n => " " + n, 2);
-  const tasks = discoverDocuments(input,port).map(source => ({
-    input:source,output:join(destination,relativePath(input,source).replace(SUPPORTED, "")+".md")
-  }));
+  // Reserve each planned Markdown path as well as checking existing files.
+  // Different source extensions can share the same stem in one directory.
   const seen = new Set<string>();
-  for (const task of tasks) {
-    const key = task.output.toLowerCase();
-    if (seen.has(key)) throw new Error("Markdown output collision: " + task.output);
-    seen.add(key);
-  }
-  return tasks;
+  return discoverDocuments(input,port).map(source => {
+    const stem = join(destination,relativePath(input,source).replace(SUPPORTED, ""));
+    let n = 0, output: string;
+    do {
+      output = stem + (n ? "-" + n : "") + ".md";
+      if (!Number.isSafeInteger(++n)) throw new Error("Markdown suffix exhausted: " + stem);
+    } while (seen.has(output.toLowerCase()) || port.stat(output) !== "missing");
+    seen.add(output.toLowerCase());
+    return {input:source,output};
+  });
 }
 export function processInputs(
   argv: string[], port: FilePort, assets: AnyDocAssets, runtime: "Node" | "JXA",
@@ -114,6 +117,7 @@ export function processInputs(
 ): ProcessingResult {
   const tasks = planConversions(argv,port);
   const conversions: ConversionResult[] = [];
+  const skipped: Array<{input:string;output:string}> = [];
   const failures: Array<{input:string;message:string;ocrRecovery?:{code:"needsOcr";pages:number[];pageCount:number}}> = [];
   // Both modes create new destinations; no old Markdown is silently skipped.
   if (tasks.length) {
@@ -131,6 +135,12 @@ export function processInputs(
           ocrRecovery=request;
           markdown=recover(task.input,request,engine);
         }
+        if (ocrRecovery && markdown.trim().length === 0) {
+          // Every page was image-only/blank and Vision found no text. Do not
+          // create an empty Markdown file or a separator-only document.
+          skipped.push({input:task.input,output:task.output});
+          continue;
+        }
         port.ensureDirectory(dirname(task.output));
         port.writeText(task.output,markdown);
         conversions.push({input:task.input,output:task.output,markdownCharacters:markdown.length,
@@ -143,5 +153,5 @@ export function processInputs(
   }
   return {schema:1,runtime,mode:"single-process",wasmInitializationCount:getWasmInitializationCount(),
     discoveredCount:tasks.length,conversionCount:conversions.length,conversions,
-    skippedCount:0,skipped:[],failureCount:failures.length,failures};
+    skippedCount:skipped.length,skipped,failureCount:failures.length,failures};
 }

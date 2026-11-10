@@ -77,7 +77,7 @@ try {
     "| Single PDF / origin.pdf | "+singleNodeHash+" | "+singleJxaHash+" | PASS |",
     "| Recursive folder / origin.pdf | "+folderOriginHash+" | "+sha(path.join(jxaFolderMd,"origin.md"))+" | PASS |",
     ...rows,
-    "","- OCR request metadata is retained in ANYDOC_BATCH_JSON as code/pages/pageCount.",
+    "","- OCR request metadata is retained in the formatted JSON result as code/pages/pageCount.",
     "- Text-page PDF ranges use AnyDoc; scanned pages use macOS Vision OCR; Markdown is merged in original page order.",
     "- Internal chunk boundary comments are excluded from the exported Markdown.",
     "- Node delegates only native PDFKit/Vision recovery to an isolated JXA helper; Node and JXA each initialize their own AnyDoc WASM singleton once.",

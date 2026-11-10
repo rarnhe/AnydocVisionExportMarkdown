@@ -13,5 +13,5 @@ export function run(argv: string[] = []): string {
     glueCode: __EMBEDDED_GLUE_CODE__
   };
   const result = processInputs(Array.from(argv), createCocoaFilePort(), assets, "JXA", recoverWithCocoaPdfKit);
-  return "ANYDOC_BATCH_JSON=" + JSON.stringify(result);
+  return JSON.stringify(result, null, 2);
 }

@@ -8,6 +8,26 @@ function str(v:any):string {return String(ObjC.unwrap(v));}
 function write(data:any,path:string):void {
   if(!data || !data.writeToFileAtomically(ns(path),true))throw new Error("Cannot write temporary PDF/image: "+path);
 }
+export function joinOcrLines(lines:string[]):string {
+  return lines.filter(line=>line.trim()).join("\n");
+}
+
+export function convertTextChunk(engine:AnyDocEngine,bytes:Uint8Array):string {
+  try {
+    return engine.convertPdf(bytes);
+  } catch(error) {
+    // An individual text-only segment can legitimately yield no usable Markdown.
+    // Treat only the engine's empty/short-output guard as an empty chunk; propagate real failures.
+    if(String(error).includes("Converted Markdown empty or too short")) return "";
+    throw error;
+  }
+}
+
+export function assembleOcrChunks(chunks:string[]):string {
+  // Keep each page/range position, including empty image-only or empty-text chunks.
+  return chunks.join("\n\n---\n\n")+"\n";
+}
+
 function ocrImage(path:string):string {
   const url=$.NSURL.fileURLWithPath(ns(path));
   const request=$.VNRecognizeTextRequest.alloc.init;
@@ -29,8 +49,9 @@ function ocrImage(path:string):string {
       if(line.trim())lines.push(line);
     }
   }
-  if(!lines.length)throw new Error("Vision OCR returned no text: "+path);
-  return lines.join("\n");
+  // A photograph or blank scan may contain no recognizable text. This is a valid
+  // empty page, not a document-level failure: later pages must still be processed.
+  return joinOcrLines(lines);
 }
 /**
  * JXA-only PDFKit + Vision fallback. No JSC, NSTask, npm OCR library or
@@ -77,10 +98,10 @@ export function recoverWithCocoaPdfKit(
         const data=$.NSData.dataWithContentsOfFile(ns(path));
         if(!data)throw new Error("Cannot read temporary PDF "+path);
         const bytes=decodeBase64(str(data.base64EncodedStringWithOptions(0)));
-        chunks.push(engine.convertPdf(bytes));
+        chunks.push(convertTextChunk(engine,bytes));
       }
     }
-    return chunks.join("\n\n---\n\n")+"\n";
+    return assembleOcrChunks(chunks);
   } finally {
     if(!manager.removeItemAtPathError(ns(temp),null))
       throw new Error("Cannot remove OCR temporary directory: "+temp);

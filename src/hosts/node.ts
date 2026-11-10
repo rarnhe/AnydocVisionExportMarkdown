@@ -28,12 +28,20 @@ function recoverWithJxaBridge(input:string,request:OcrRequest):string {
     const marker=output.split(/\r?\n/).find(line=>line.startsWith("ANYDOC_BATCH_JSON="));
     if(!marker)throw new Error("JXA Vision recovery returned no batch JSON: "+output.slice(-2000));
     const result=JSON.parse(marker.slice("ANYDOC_BATCH_JSON=".length)) as {
-      failureCount:number;conversionCount:number;
-      conversions:Array<{output:string;ocrRecovery?:{code:string;pages:number[];pageCount:number}}>
+      failureCount:number;conversionCount:number;skippedCount:number;
+      conversions:Array<{output:string;ocrRecovery?:{code:string;pages:number[];pageCount:number}}>;
+      skipped:Array<{input:string;output:string}>;
     };
+    if(result.failureCount!==0)
+      throw new Error("JXA recovery failed: "+JSON.stringify(result));
+    // An all-image/blank document is a successful recovery with no Markdown
+    // artifact. Preserve that outcome for the Node processor.
+    if(result.conversionCount===0 && result.skippedCount===1 &&
+       result.skipped?.[0]?.input===pdf)
+      return "";
     const conversion=result.conversions?.[0];
-    if(result.failureCount!==0||result.conversionCount!==1||!conversion?.ocrRecovery||
-       conversion.ocrRecovery.code!=="needsOcr"||conversion.ocrRecovery.pageCount!==request.pageCount||
+    if(result.conversionCount!==1 || result.skippedCount!==0 || !conversion?.ocrRecovery ||
+       conversion.ocrRecovery.code!=="needsOcr" || conversion.ocrRecovery.pageCount!==request.pageCount ||
        JSON.stringify(conversion.ocrRecovery.pages)!==JSON.stringify(request.pages))
       throw new Error("JXA recovery metadata mismatch: "+JSON.stringify(result));
     const outputPath=path.resolve(conversion.output);

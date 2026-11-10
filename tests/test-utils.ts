@@ -84,9 +84,11 @@ function isBatchResult(value: unknown): value is BatchResult {
     typeof value.conversionCount === "number" && Array.isArray(value.conversions);
 }
 export function extractBatchOutput(output: string): BatchResult {
-  const at = output.indexOf(BATCH_PREFIX);
-  if (at < 0) throw new Error("Missing ANYDOC_BATCH_JSON structured marker");
-  const value = parseObjectAt(output.slice(at + BATCH_PREFIX.length));
+  // Batch results are now pretty-printed JSON objects without a prefix.
+  // Other probes still use their own markers.
+  const at = output.indexOf("{");
+  if (at < 0) throw new Error("Missing structured batch JSON");
+  const value = parseObjectAt(output.slice(at));
   if (!isBatchResult(value)) throw new Error("Malformed batch result schema");
   return value;
 }

@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-09T18:20:21.269Z
+- 测试时间 (UTC): 2026-11-10T16:21:57.334Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: 91ac3c2386aace72d128328a81456ce593cb9961
-- GitHub Run: 42673083357
+- GitHub SHA: 866ce6f97d7a92d9cd15f6c2458c0245cede6b0f
+- GitHub Run: 42852913288
 
 ## 测试状态
 
@@ -226,7 +226,7 @@ Error: Transform failed with 1 error:
 }
 
 Node.js v24.22.2
-✖ tests/unit.test.ts (162.561084ms)
+✖ tests/unit.test.ts (208.186959ms)
 ℹ tests 1
 ℹ suites 0
 ℹ pass 0
@@ -234,12 +234,12 @@ Node.js v24.22.2
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 174.583416
+ℹ duration_ms 225.023959
 
 ✖ failing tests:
 
 test at tests/unit.test.ts:1:1
-✖ tests/unit.test.ts (162.561084ms)
+✖ tests/unit.test.ts (208.186959ms)
   'test failed'
 
 STDERR:

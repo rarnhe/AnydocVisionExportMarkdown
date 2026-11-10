@@ -2,7 +2,7 @@ name: macOS JXA-only AnyDoc validation
 
 on:
   push:
-    branches: [main, 'test/**', 'feature/**', 'migration/**']
+    branches: [main, 'test/**', 'feature/**', 'fix/**', 'migration/**']
     paths-ignore:
       - test_report.md
   pull_request:
@@ -130,9 +130,8 @@ jobs:
             !tests/output/*.js
           if-no-files-found: warn
 
-      - name: Commit test_report.md to feature branch, including failed results
-        if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/test/') || startsWith(github.ref, 'refs/heads/migration/')) }}
-        continue-on-error: true
+      - name: Commit test_report.md to source branch, including failed results
+        if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/test/') || startsWith(github.ref, 'refs/heads/fix/') || startsWith(github.ref, 'refs/heads/migration/')) }}
         env:
           REPORT_BRANCH: ${{ github.ref_name }}
         run: |

@@ -57,7 +57,7 @@ try {
   const args=process.argv.slice(2);
   const result=processInputs(args,createNodeFilePort(),loadPackageAssets(),"Node",
     (input,request)=>recoverWithJxaBridge(input,request));
-  console.log("ANYDOC_BATCH_JSON="+JSON.stringify(result));
+  console.log(JSON.stringify(result, null, 2));
   if(result.failureCount)process.exitCode=1;
 } catch(error) {
   console.error("Node AnyDoc conversion failed:",error);

@@ -12,20 +12,11 @@ export function joinOcrLines(lines:string[]):string {
   return lines.filter(line=>line.trim()).join("\n");
 }
 
-export function convertTextChunk(engine:AnyDocEngine,bytes:Uint8Array):string {
-  try {
-    return engine.convertPdf(bytes);
-  } catch(error) {
-    // An individual text-only segment can legitimately yield no usable Markdown.
-    // Treat only the engine's empty/short-output guard as an empty chunk; propagate real failures.
-    if(String(error).includes("Converted Markdown empty or too short")) return "";
-    throw error;
-  }
-}
-
 export function assembleOcrChunks(chunks:string[]):string {
-  // Keep each page/range position, including empty image-only or empty-text chunks.
-  return chunks.join("\n\n---\n\n")+"\n";
+  // Ignore image-only pages with no recognized text. If every chunk is empty,
+  // return an empty string so the processor can omit the Markdown file entirely.
+  const nonEmpty=chunks.filter(chunk=>chunk.trim().length>0);
+  return nonEmpty.length ? nonEmpty.join("\n\n---\n\n")+"\n" : "";
 }
 
 function ocrImage(path:string):string {
@@ -98,7 +89,7 @@ export function recoverWithCocoaPdfKit(
         const data=$.NSData.dataWithContentsOfFile(ns(path));
         if(!data)throw new Error("Cannot read temporary PDF "+path);
         const bytes=decodeBase64(str(data.base64EncodedStringWithOptions(0)));
-        chunks.push(convertTextChunk(engine,bytes));
+        chunks.push(engine.convertPdf(bytes));
       }
     }
     return assembleOcrChunks(chunks);

@@ -97,16 +97,19 @@ export function planConversions(argv: string[], port: FilePort): ConversionTask[
   const base = input + "_md";
   // Every folder run creates a new sibling tree: A_md, A_md 2, A_md 3, ...
   const destination = availablePath(base, port, n => " " + n, 2);
-  const tasks = discoverDocuments(input,port).map(source => ({
-    input:source,output:join(destination,relativePath(input,source).replace(SUPPORTED, "")+".md")
-  }));
+  // Reserve each planned Markdown path as well as checking existing files.
+  // Different source extensions can share the same stem in one directory.
   const seen = new Set<string>();
-  for (const task of tasks) {
-    const key = task.output.toLowerCase();
-    if (seen.has(key)) throw new Error("Markdown output collision: " + task.output);
-    seen.add(key);
-  }
-  return tasks;
+  return discoverDocuments(input,port).map(source => {
+    const stem = join(destination,relativePath(input,source).replace(SUPPORTED, ""));
+    let n = 0, output: string;
+    do {
+      output = stem + (n ? "-" + n : "") + ".md";
+      if (!Number.isSafeInteger(++n)) throw new Error("Markdown suffix exhausted: " + stem);
+    } while (seen.has(output.toLowerCase()) || port.stat(output) !== "missing");
+    seen.add(output.toLowerCase());
+    return {input:source,output};
+  });
 }
 export function processInputs(
   argv: string[], port: FilePort, assets: AnyDocAssets, runtime: "Node" | "JXA",

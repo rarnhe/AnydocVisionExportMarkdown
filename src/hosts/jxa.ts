@@ -1,4 +1,4 @@
-import {recoverWithCocoaPdfKit} from "../adapters/cocoa-ocr";
+import {recoverWithCocoaPdfKit,recoverImageWithVision} from "../adapters/cocoa-ocr";
 import { decodeBase64 } from "../shared/base64";
 import { processInputs } from "../core/processor";
 import { createCocoaFilePort } from "../adapters/cocoa-fs";
@@ -12,6 +12,9 @@ export function run(argv: string[] = []): string {
     wasmBytes: decodeBase64(__EMBEDDED_WASM_B64__),
     glueCode: __EMBEDDED_GLUE_CODE__
   };
-  const result = processInputs(Array.from(argv), createCocoaFilePort(), assets, "JXA", recoverWithCocoaPdfKit);
+  const result = processInputs(Array.from(argv), createCocoaFilePort(), assets, "JXA",
+    (input,request,engine)=>request
+      ? recoverWithCocoaPdfKit(input,request,engine!)
+      : recoverImageWithVision(input));
   return JSON.stringify(result, null, 2);
 }

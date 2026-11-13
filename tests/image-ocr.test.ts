@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {test} from "node:test";
 import {spawnSync} from "node:child_process";
-import {copyFileSync,existsSync,mkdtempSync,readFileSync,rmSync} from "node:fs";
+import {copyFileSync,existsSync,mkdirSync,mkdtempSync,readFileSync,rmSync,writeFileSync} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {planConversions} from "../src/core/processor";
@@ -49,4 +49,33 @@ test("real PNG Vision OCR is consistent in Node and JXA; empty OCR skips the fil
     assert.equal(statuses[0],statuses[1],"Node/JXA outcomes must match");
     assert.equal(outputs[0],outputs[1],"Node/JXA OCR Markdown must be identical");
   }finally{rmSync(root,{recursive:true,force:true});}
+});
+
+
+test("single-file mode skips hidden and Office temporary documents",()=>{
+  const root=mkdtempSync(path.join(os.tmpdir(),"anydoc-hidden-single-"));
+  try {
+    for(const name of [".~draft.docx",".hidden.docx","~$draft.docx","normal.docx"]){
+      const file=path.join(root,name);
+      writeFileSync(file,"fixture");
+      const tasks=planConversions([file],createNodeFilePort());
+      assert.equal(tasks.length,name==="normal.docx"?1:0,name);
+    }
+  }finally{rmSync(root,{recursive:true,force:true});}
+});
+
+test("recursive directory mode ignores hidden files, hidden folders and Office locks",()=>{
+  const root=mkdtempSync(path.join(os.tmpdir(),"anydoc-hidden-tree-"));
+  try {
+    const hidden=path.join(root,".hidden-dir");
+    const nested=path.join(root,"nested");
+    mkdirSync(hidden);mkdirSync(nested);
+    for(const name of [".~draft.docx",".hidden.docx","~$draft.docx","normal.docx"])
+      writeFileSync(path.join(root,name),"fixture");
+    writeFileSync(path.join(hidden,"should-not-process.pdf"),"fixture");
+    writeFileSync(path.join(nested,"kept.pdf"),"fixture");
+    writeFileSync(path.join(nested,".~skip.png"),"fixture");
+    const tasks=planConversions([root],createNodeFilePort());
+    assert.deepEqual(tasks.map(task=>path.relative(root,task.input)),["nested/kept.pdf","normal.docx"]);
+  }finally{rmSync(root,{recursive:true,force:true});rmSync(root+"_md",{recursive:true,force:true});}
 });

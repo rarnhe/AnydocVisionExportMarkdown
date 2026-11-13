@@ -36,7 +36,7 @@ test("real PNG Vision OCR is consistent in Node and JXA; empty OCR skips the fil
       const batch=extractBatchOutput(String(run.stdout)+"\n"+String(run.stderr));
       assert.equal(batch.failureCount,0);
       assert.equal(batch.discoveredCount,1);
-      assert.equal(batch.conversionCount+batch.skippedCount,1);
+      assert.equal(batch.conversionCount+Number(batch.skippedCount),1);
       const md=path.join(root,runtime+".md");
       if(batch.skippedCount===1){
         assert.ok(!existsSync(md),"Empty Vision OCR must not create Markdown");
@@ -46,7 +46,7 @@ test("real PNG Vision OCR is consistent in Node and JXA; empty OCR skips the fil
         statuses.push("converted");outputs.push(readFileSync(md,"utf8"));
       }
     }
-    assert.deepEqual(statuses,["converted","converted"].map((_,i)=>statuses[0]),"Node/JXA outcomes must match");
+    assert.equal(statuses[0],statuses[1],"Node/JXA outcomes must match");
     assert.equal(outputs[0],outputs[1],"Node/JXA OCR Markdown must be identical");
   }finally{rmSync(root,{recursive:true,force:true});}
 });

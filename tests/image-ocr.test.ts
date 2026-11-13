@@ -23,7 +23,11 @@ test("real PNG Vision OCR is consistent in Node and JXA; empty OCR skips the fil
   const root=mkdtempSync(path.join(os.tmpdir(),"anydoc-image-ocr-"));
   try{
     const bundle=path.resolve("dist/anydoc-wasm.osascript.js");
-    assert.ok(existsSync(bundle),"Build JXA bundle before image OCR integration test");
+    if(!existsSync(bundle)) {
+      const build=spawnSync("npm",["run","build"],{encoding:"utf8",timeout:120000});
+      assert.equal(build.status,0,"JXA build failed: "+build.stderr+"\n"+build.stdout);
+    }
+    assert.ok(existsSync(bundle),"JXA bundle must exist after build");
     const outputs:string[]=[];
     const statuses:string[]=[];
     for(const runtime of ["Node","JXA"] as const){

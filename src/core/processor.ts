@@ -20,6 +20,10 @@ export interface ProcessingResult {
 
 const SUPPORTED = /\.(pdf|doc|docx|docm|ppt|pps|pot|pptx|pptm|ppsx|ppsm|xls|xlsx|xlsm|xlsb|odt|ods|odp|rtf|epub|csv|png|jpe?g)$/i;
 const IMAGE = /\.(png|jpe?g)$/i;
+/** Ignore hidden files and Office temporary/lock files. */
+function isTemporaryName(name:string):boolean {
+  return name.startsWith(".") || name.startsWith("~$");
+}
 /** Exactly one supported document or one directory; multiple inputs and flags unsupported. */
 export function parseArguments(argv: string[]): string {
   if (argv.length !== 1 || !argv[0] || String(argv[0]).startsWith("--")) {
@@ -60,6 +64,7 @@ function discoverDocuments(root: string, port: FilePort): string[] {
       const entry = entries[i];
       if (!entry.name || entry.name === "." || entry.name === ".." ||
           entry.name.includes("/")) throw new Error("Unsafe directory entry: " + entry.name);
+      if (isTemporaryName(entry.name)) continue;
       const full = join(directory, entry.name);
       if (entry.kind === "directory") stack.push(full);
       else if (entry.kind === "file" && SUPPORTED.test(entry.name)) files.push(full);
@@ -86,6 +91,7 @@ function availableMarkdown(stem: string, port: FilePort): string {
 export function planConversions(argv: string[], port: FilePort): ConversionTask[] {
   const input = normalize(parseArguments(argv)), kind = port.stat(input);
   if (kind === "file") {
+    if (isTemporaryName(input.slice(input.lastIndexOf("/")+1))) return [];
     if (!SUPPORTED.test(input)) throw new Error("Expected an AnyDoc-supported document format: " + input);
     const stem = input.replace(SUPPORTED, "");
     // Same directory: file.md, file-1.md, file-2.md, ...

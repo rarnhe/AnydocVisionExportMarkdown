@@ -12,14 +12,14 @@ import type {OcrRequest} from "../core/needs-ocr";
  * to the already-built JXA host; Node keeps its own single AnyDoc WASM instance.
  * The helper runs in a separate JXA process and returns its Markdown via a temp file.
  */
-function recoverWithJxaBridge(input:string,request:OcrRequest):string {
+function recoverWithJxaBridge(input:string,request:OcrRequest|null):string {
   const bundle=path.resolve(process.cwd(),"dist/anydoc-wasm.osascript.js");
-  if(!existsSync(bundle))throw new Error("Mixed-PDF OCR in Node requires the JXA bundle; run npm run build first");
+  if(!existsSync(bundle))throw new Error("Native Vision OCR in Node requires the JXA bundle; run npm run build first");
   const temp=mkdtempSync(path.join(os.tmpdir(),"anydoc-node-ocr-"));
   try {
-    const pdf=path.join(temp,"input.pdf");
-    copyFileSync(input,pdf);
-    const run=spawnSync("osascript",["-l","JavaScript",bundle,pdf],{
+    const source=path.join(temp,"input"+path.extname(input).toLowerCase());
+    copyFileSync(input,source);
+    const run=spawnSync("osascript",["-l","JavaScript",bundle,source],{
       encoding:"utf8",timeout:900000,maxBuffer:32*1024*1024
     });
     if(run.error)throw run.error;
@@ -52,12 +52,14 @@ function recoverWithJxaBridge(input:string,request:OcrRequest):string {
     // An all-image/blank document is a successful recovery with no Markdown
     // artifact. Preserve that outcome for the Node processor.
     if(result.conversionCount===0 && result.skippedCount===1 &&
-       result.skipped?.[0]?.input===pdf)
+       result.skipped?.[0]?.input===source)
       return "";
     const conversion=result.conversions?.[0];
-    if(result.conversionCount!==1 || result.skippedCount!==0 || !conversion?.ocrRecovery ||
-       conversion.ocrRecovery.code!=="needsOcr" || conversion.ocrRecovery.pageCount!==request.pageCount ||
-       JSON.stringify(conversion.ocrRecovery.pages)!==JSON.stringify(request.pages))
+    if(result.conversionCount!==1 || result.skippedCount!==0 || !conversion ||
+       (request !== null && (!conversion.ocrRecovery ||
+         conversion.ocrRecovery.code!=="needsOcr" || conversion.ocrRecovery.pageCount!==request.pageCount ||
+         JSON.stringify(conversion.ocrRecovery.pages)!==JSON.stringify(request.pages))) ||
+       (request === null && conversion.ocrRecovery !== undefined))
       throw new Error("JXA recovery metadata mismatch: "+JSON.stringify(result));
     const outputPath=path.resolve(conversion.output);
     if(!outputPath.startsWith(temp+path.sep)||!existsSync(outputPath))

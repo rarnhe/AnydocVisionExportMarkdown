@@ -4,7 +4,7 @@ macOS 下基于 TypeScript、JXA、Objective-C Foundation 与 `@firecrawl/anydoc
 
 ## 两种输入模式
 
-仅接收**一个输入路径**：一个 PDF 文件，或一个需要递归处理的文件夹。**不支持多个 PDF 路径串行输入，也不支持 `--output-dir`。**
+仅接收**一个输入路径**：一个 PDF 文件，或一个需要递归处理的文件夹。
 
 ### 单个文档
 
@@ -66,6 +66,7 @@ npm run build
 Node 开发模式与 JXA 运行模式采用同一个 `src/core/processor.ts` 和 WASM 引擎：
 
 ```bash
+npm install --save-dev esbuild @firecrawl/anydoc-wasm tsx
 npx --no-install tsx src/hosts/node.ts ./tests/chunk_1.pdf
 npx --no-install tsx src/hosts/node.ts ./tests
 ./dist/anydoc-wasm.osascript.js ./tests/chunk_1.pdf

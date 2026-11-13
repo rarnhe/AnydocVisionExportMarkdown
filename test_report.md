@@ -1,10 +1,10 @@
 # JXA — macOS 能力边界实测
 
-- 测试时间 (UTC): 2026-11-10T18:31:57.208Z
+- 测试时间 (UTC): 2026-11-13T16:04:35.413Z
 - 系统: ProductName:		macOS; ProductVersion:		26.7.2; BuildVersion:		25G332
 - Node.js: v24.22.2
-- GitHub SHA: b177d12d54791d526584cadc6db2995e94bd3b10
-- GitHub Run: 42876073136
+- GitHub SHA: 9cdee9ba4f444e8255433db42ab0fc90e943aab3
+- GitHub Run: 43458961238
 
 ## 测试状态
 
@@ -187,31 +187,31 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 #### Node unit test details
 
 ```text
-✔ probe parser extracts JSON after diagnostic output (1.832542ms)
-✔ probe parser skips malformed marker and accepts a later valid marker (0.213833ms)
-✔ probe parser rejects missing marker and wrong schema (0.511208ms)
-✔ Markdown report escaping handles pipes and newlines (0.199708ms)
-✔ batch parser accepts JXA and Node results (0.256375ms)
-✖ batch parser rejects missing marker and invalid schema (1.078291ms)
-✔ log sanitizer flattens lines and separators (0.126958ms)
-✔ Markdown validator accepts UTF-8 and rejects short or placeholder content (0.316125ms)
-✔ TS to JXA ports/adapters template files exist (0.269084ms)
-✔ application src tree contains TypeScript files only (1.688208ms)
-✔ tests tree contains no Python source (0.672917ms)
-✔ real PDF fixture exists and has a valid header (1.232375ms)
-✔ package build and doctor scripts are declared (2.368541ms)
-✔ CI uses reproducible npm ci with committed lockfile (0.856583ms)
-✔ production JXA entry and Node host share core but not host APIs (0.338792ms)
-✔ build and TSX development use one TypeScript asset loader (0.21525ms)
-✔ single PDF output numbering starts at -1 and never overwrites (57.980292ms)
-✔ recursive folder creates a fresh _md tree on each run, suffix starts at space 2 (17.790875ms)
-✔ report aggregation is JavaScript-only and always runs (0.677ms)
-✔ TypeScript uses modern bundler resolution without suppressing deprecations (0.376167ms)
-✔ build emits distinct osascript and Automator entrypoints (0.154792ms)
-✔ Automator build emits the engine outside its thin run adapter (0.0805ms)
-✔ Automator JXA object harness uses executable newlines and keeps original run (0.105834ms)
-✔ unique PDF and Office stems produce clean .md outputs in file and folder mode (2.87875ms)
-✔ same stem across formats gets sequential Markdown names in directory mode (3.34225ms)
+✔ probe parser extracts JSON after diagnostic output (1.556083ms)
+✔ probe parser skips malformed marker and accepts a later valid marker (0.3595ms)
+✔ probe parser rejects missing marker and wrong schema (0.333208ms)
+✔ Markdown report escaping handles pipes and newlines (0.169583ms)
+✔ batch parser accepts JXA and Node results (0.248959ms)
+✖ batch parser rejects missing marker and invalid schema (1.053291ms)
+✔ log sanitizer flattens lines and separators (0.1275ms)
+✔ Markdown validator accepts UTF-8 and rejects short or placeholder content (0.293167ms)
+✔ TS to JXA ports/adapters template files exist (0.204041ms)
+✔ application src tree contains TypeScript files only (0.608791ms)
+✔ tests tree contains no Python source (0.213375ms)
+✔ real PDF fixture exists and has a valid header (0.23525ms)
+✔ package build and doctor scripts are declared (0.134542ms)
+✔ CI uses reproducible npm ci with committed lockfile (0.257333ms)
+✔ production JXA entry and Node host share core but not host APIs (0.194625ms)
+✔ build and TSX development use one TypeScript asset loader (0.169625ms)
+✔ single PDF output numbering starts at -1 and never overwrites (25.749916ms)
+✔ recursive folder creates a fresh _md tree on each run, suffix starts at space 2 (11.609292ms)
+✔ report aggregation is JavaScript-only and always runs (0.194833ms)
+✔ TypeScript uses modern bundler resolution without suppressing deprecations (0.130333ms)
+✔ build emits distinct osascript and Automator entrypoints (0.092542ms)
+✔ Automator build emits the engine outside its thin run adapter (0.079708ms)
+✔ Automator JXA object harness uses executable newlines and keeps original run (0.086ms)
+✔ unique PDF and Office stems produce clean .md outputs in file and folder mode (3.224625ms)
+✔ same stem across formats gets sequential Markdown names in directory mode (3.943458ms)
 ℹ tests 25
 ℹ suites 0
 ℹ pass 24
@@ -219,12 +219,12 @@ unavailable: 宿主未暴露 API；error: API 存在但调用失败；not_tested
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 479.919209
+ℹ duration_ms 238.158666
 
 ✖ failing tests:
 
 test at tests/unit.test.ts:35:1
-✖ batch parser rejects missing marker and invalid schema (1.078291ms)
+✖ batch parser rejects missing marker and invalid schema (1.053291ms)
   AssertionError [ERR_ASSERTION]: The input did not match the regular expression /marker/. Input:
   
   'Error: Missing structured batch JSON'

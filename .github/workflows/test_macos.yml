@@ -78,7 +78,7 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
-          npx --no-install tsx --test tests/needs-ocr.test.ts tests/vision-ocr.test.ts 2>&1 | tee tests/output/ocr-unit.log
+          npx --no-install tsx --test tests/needs-ocr.test.ts tests/vision-ocr.test.ts tests/image-ocr.test.ts 2>&1 | tee tests/output/ocr-unit.log
 
       - name: Real mixed PDF Vision OCR (file and directory)
         id: ocr

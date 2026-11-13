@@ -44,6 +44,12 @@ function ocrImage(path:string):string {
   // empty page, not a document-level failure: later pages must still be processed.
   return joinOcrLines(lines);
 }
+/** OCR an image directly; no PDF conversion or AnyDoc attempt. */
+export function recoverImageWithVision(input:string):string {
+  ObjC.import("Foundation");ObjC.import("Vision");
+  return ocrImage(input);
+}
+
 /**
  * JXA-only PDFKit + Vision fallback. No JSC, NSTask, npm OCR library or
  * additional WASM instance. Temporary chunks are removed even on failure.

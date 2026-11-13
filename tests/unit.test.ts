@@ -3,7 +3,7 @@ import {readdirSync, readFileSync, statSync} from "node:fs";
 import path from "node:path";
 import {test} from "node:test";
 import {
-  BATCH_PREFIX, PROBE_PREFIX,
+  PROBE_PREFIX,
   extractBatchOutput, extractProbeResult,
   mdEscape, safe, validateMarkdownBytes
 } from "./test-utils";
@@ -29,12 +29,12 @@ test("Markdown report escaping handles pipes and newlines", () => {
 test("batch parser accepts JXA and Node results", () => {
   const jxa = {schema: 1, runtime: "JXA", mode: "single-process", wasmInitializationCount: 1, conversionCount: 2, conversions: []};
   const node = {...jxa, runtime: "Node"};
-  assert.deepEqual(extractBatchOutput("noise\n" + BATCH_PREFIX + JSON.stringify(jxa)), jxa);
-  assert.deepEqual(extractBatchOutput(BATCH_PREFIX + JSON.stringify(node) + "\ntrailing"), node);
+  assert.deepEqual(extractBatchOutput("noise\n" + JSON.stringify(jxa,null,2)), jxa);
+  assert.deepEqual(extractBatchOutput(JSON.stringify(node,null,2) + "\ntrailing"), node);
 });
-test("batch parser rejects missing marker and invalid schema", () => {
-  assert.throws(() => extractBatchOutput("nothing"), /marker/);
-  assert.throws(() => extractBatchOutput(BATCH_PREFIX + '{"schema":9}'), /schema/);
+test("batch parser rejects missing JSON and invalid schema", () => {
+  assert.throws(() => extractBatchOutput("nothing"), /JSON/);
+  assert.throws(() => extractBatchOutput('{"schema":9}'), /schema/);
 });
 test("log sanitizer flattens lines and separators", () => {
   assert.equal(safe("error|failure\nline"), "error/failure line");

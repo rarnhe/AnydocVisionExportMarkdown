@@ -18,7 +18,8 @@ export interface ProcessingResult {
   failures: Array<{input: string; message: string}>;
 }
 
-const SUPPORTED = /\.(pdf|doc|docx|docm|ppt|pps|pot|pptx|pptm|ppsx|ppsm|xls|xlsx|xlsm|xlsb|odt|ods|odp|rtf|epub|csv)$/i;
+const SUPPORTED = /\.(pdf|doc|docx|docm|ppt|pps|pot|pptx|pptm|ppsx|ppsm|xls|xlsx|xlsm|xlsb|odt|ods|odp|rtf|epub|csv|png|jpe?g)$/i;
+const IMAGE = /\.(png|jpe?g)$/i;
 /** Exactly one supported document or one directory; multiple inputs and flags unsupported. */
 export function parseArguments(argv: string[]): string {
   if (argv.length !== 1 || !argv[0] || String(argv[0]).startsWith("--")) {
@@ -113,7 +114,7 @@ export function planConversions(argv: string[], port: FilePort): ConversionTask[
 }
 export function processInputs(
   argv: string[], port: FilePort, assets: AnyDocAssets, runtime: "Node" | "JXA",
-  recover?: (input:string, request:NonNullable<ReturnType<typeof parseNeedsOcr>>, engine:ReturnType<typeof getAnyDocSingleton>)=>string
+  recover?: (input:string, request:ReturnType<typeof parseNeedsOcr>, engine?:ReturnType<typeof getAnyDocSingleton>)=>string
 ): ProcessingResult {
   const tasks = planConversions(argv,port);
   const conversions: ConversionResult[] = [];
@@ -121,21 +122,23 @@ export function processInputs(
   const failures: Array<{input:string;message:string;ocrRecovery?:{code:"needsOcr";pages:number[];pageCount:number}}> = [];
   // Both modes create new destinations; no old Markdown is silently skipped.
   if (tasks.length) {
-    const engine = getAnyDocSingleton(assets);
     for (const task of tasks) {
       let ocrRecovery:ReturnType<typeof parseNeedsOcr>=null;
       try {
         let markdown:string;
-        try {
+        if (IMAGE.test(task.input)) {
+          if (!recover) throw new Error("Vision OCR host is required for image inputs");
+          markdown=recover(task.input,null);
+        } else try {
           const type=task.input.toLowerCase().slice(task.input.lastIndexOf(".")+1);
-          markdown=engine.convert(port.readBytes(task.input),type);
+          markdown=getAnyDocSingleton(assets).convert(port.readBytes(task.input),type);
         } catch(error) {
           const request=parseNeedsOcr(error);
           if(!request || !recover || !/\.pdf$/i.test(task.input))throw error;
           ocrRecovery=request;
-          markdown=recover(task.input,request,engine);
+          markdown=recover(task.input,request,getAnyDocSingleton(assets));
         }
-        if (ocrRecovery && markdown.trim().length === 0) {
+        if ((ocrRecovery || IMAGE.test(task.input)) && markdown.trim().length === 0) {
           // Every page was image-only/blank and Vision found no text. Do not
           // create an empty Markdown file or a separator-only document.
           skipped.push({input:task.input,output:task.output});
